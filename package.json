@@ -1,0 +1,30 @@
+{
+  "name": "social-media-manager",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.22.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup:local": "node scripts/setup.mjs",
+    "dev": "pnpm --filter @social/shared build && pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter @social/server start",
+    "worker": "pnpm --filter @social/server worker",
+    "typecheck": "pnpm --filter @social/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @social/shared build && pnpm --filter @social/server test && pnpm --filter @social/client test",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "prettier": "3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}
