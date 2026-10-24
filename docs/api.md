@@ -1,22 +1,34 @@
 # API boundaries
 
-The UI uses relative `/api` URLs. Mutations require `X-SocialDesk-Client: 1` and JSON except media upload, which uses multipart form field `file`. Server inputs and shared responses are validated with Zod. Error responses have `{ "error": "Useful message" }`.
+The UI uses relative `/api` URLs. Mutations require `X-SocialSync-Client: 1` and JSON except media upload, which uses multipart form field `file`. Server inputs and shared responses are validated with Zod. Error responses have `{ "error": "Useful message" }`.
+
+## MCP interface
+
+The app server also exposes `POST /mcp` using MCP Streamable HTTP and the same local-access checks, including `X-SocialSync-Client: 1`. It uses the existing workflow services and worker. See [MCP setup and tools](mcp.md) for client configuration and protocol details.
 
 ## Global resources
 
 | Method     | Path                                  | Behavior                                                            |
 | ---------- | ------------------------------------- | ------------------------------------------------------------------- |
-| GET        | `/api/health`                         | Worker heartbeat and media-origin configuration status              |
+| GET        | `/api/health`                         | Worker heartbeat and media-delivery configuration status              |
 | GET        | `/api/providers`                      | Developer configuration readiness, without credentials              |
+| GET / POST | `/api/provider-apps`                  | List safe metadata / create a named developer app                    |
+| PUT / DELETE | `/api/provider-apps/:id`             | Rename or replace secret / delete an unused configuration            |
 | GET / POST | `/api/projects`                       | List / create projects                                              |
 | PUT        | `/api/projects/:projectId`            | Rename project and update time zone                                 |
 | GET        | `/api/accounts`                       | Shared library, connection status, project assignments              |
-| POST       | `/api/accounts/connect/:provider`     | Begin OAuth; optional `projectId` and `reconnectAccountId`          |
+| POST       | `/api/accounts/connect/:provider`     | Begin OAuth with `providerAppId`; optional `projectId` and `reconnectAccountId`          |
 | GET / POST | `/api/accounts/discoveries/:id`       | Inspect / save selected discovered destinations                     |
 | GET        | `/api/accounts/:accountId/impact`     | Projects, accounts, and pending destinations affected by disconnect |
 | POST       | `/api/accounts/:accountId/disconnect` | Confirm and disconnect the shared authorization                     |
 
+`/api/health` keeps the shape `{ok, workerOnline, publicMediaReady}`. `publicMediaReady` indicates configured R2 delivery or an HTTPS local media origin; it does not probe storage access or tunnel reachability. R2 credentials and signed download URLs are never returned by API endpoints.
+
 Authorization providers (`meta`, `pinterest`, `youtube`, and legacy `instagram` / `facebook`) are distinct from account platforms. Provider status and discovery responses expose `provider`; accounts expose both `provider` and `platform`, and each discovery candidate has its own `platform`. New connections use `meta` for Facebook and Instagram together. The legacy Instagram route is reserved for reconnecting existing direct Instagram Login accounts.
+
+Provider-app creation accepts `{name, provider, clientId, clientSecret}` for `meta`, `pinterest`, or `youtube`. Updates accept only `{name?, clientSecret?}` with at least one field. Omit the secret to preserve it. Responses expose `{id, name, provider, clientId, callbackUrl, linkedAccountCount, createdAt}` and never secrets. Active OAuth/discovery records and publishing/refresh locks block secret replacement. All linked connections (including disconnected ones) and active flows block deletion.
+
+Account responses also expose nullable `providerAppId`. A new OAuth attempt requires a compatible configuration, automatically selected only if exactly one exists. Reconnect uses its saved app and rejects a different selection. Legacy unbound accounts require explicit selection; existing tokens stay intact but cannot refresh without setup. OAuth states and discoveries carry the selection server-side; account save cannot replace an identity through a different app. Provider status reflects saved configurations after the one-time legacy environment import.
 
 One connection can authorize multiple destinations, such as Facebook Pages and their linked professional Instagram accounts. The library prevents duplicate destinations by `(platform, externalId)`. Each project assignment references an existing library identity; credentials are not copied into the project.
 

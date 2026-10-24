@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project } from "@social/shared";
+import type { Project } from "@socialsync/shared";
 import { useRouteMutation } from "@/hooks/use-route-interaction";
 import { Modal, ErrorMessage } from "@/components/feedback/Feedback";
 import { Input } from "@/components/ui/input";
@@ -19,11 +19,7 @@ export function ProjectDialog({
     onCreated,
   );
   return (
-    <Modal
-      title="Create a project"
-      description="A separate space for your brand’s content, accounts, and publishing calendar."
-      onClose={onClose}
-    >
+    <Modal title="Create a project" onClose={onClose}>
       <form
         className="form-stack"
         onSubmit={(event) => {

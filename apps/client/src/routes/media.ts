@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import { mediaSchema } from "@social/shared";
+import { mediaSchema } from "@socialsync/shared";
 import { api, okSchema } from "@/lib/api";
 import { actionResult, fieldId, projectPath } from "./shared";
 export async function mediaLoader({ params, request }: LoaderFunctionArgs) {

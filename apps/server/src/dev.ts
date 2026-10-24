@@ -1,14 +1,12 @@
 import { loadConfig } from "./config.js";
 import { openDatabase } from "./database.js";
 import { createApp } from "./app.js";
-import { startWorker } from "./services/schedulingWorker.js";
+import { startDevelopmentWorker } from "./services/developmentWorker.js";
 const config = loadConfig();
 const db = openDatabase(config.databasePath);
-const stop = startWorker(db, config);
+const stop = startDevelopmentWorker(db, config);
 const server = createApp(db, config).listen(config.port, config.host, () =>
-  console.log(
-    `SocialDesk API and worker: http://${config.host}:${config.port}`,
-  ),
+  console.log(`SocialSync API: http://${config.host}:${config.port}`),
 );
 let closing = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const)

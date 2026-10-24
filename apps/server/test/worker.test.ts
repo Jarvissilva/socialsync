@@ -183,3 +183,101 @@ test("restarts mark missed posts and prevent two workers", async () => {
     f.close();
   }
 });
+
+test("R2 preparation retries through the durable worker without duplicating publication", async (t) => {
+  const { S3Client, HeadObjectCommand, PutObjectCommand } =
+    await import("@aws-sdk/client-s3");
+  const { writeFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { randomUUID } = await import("node:crypto");
+  const f = fixture();
+  const mediaId = randomUUID();
+  const bytes = Buffer.from([255, 216, 255, 219]);
+  writeFileSync(join(f.config.mediaDir, mediaId), bytes);
+  f.config.mediaDelivery = "r2";
+  f.config.r2 = {
+    endpoint: "https://account.r2.cloudflarestorage.com",
+    bucket: "private",
+    accessKeyId: "test",
+    secretAccessKey: "test",
+    keyPrefix: "socialsync",
+  };
+  let unavailable = true;
+  t.mock.method(S3Client.prototype, "send", async (command: unknown) => {
+    if (unavailable) throw new Error("private-signature-and-secret");
+    if (command instanceof HeadObjectCommand)
+      throw Object.assign(new Error(), { name: "NotFound" });
+    assert(command instanceof PutObjectCommand);
+    assert.equal(command.input.Key, `socialsync/${f.a.id}/${mediaId}`);
+    // Consume the stream just as the SDK transport does.
+    const { Readable } = await import("node:stream");
+    assert(command.input.Body instanceof Readable);
+    for await (const chunk of command.input.Body)
+      assert.deepEqual(Buffer.from(chunk), bytes);
+    return {};
+  });
+  let publications = 0;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (_url: unknown, init: RequestInit) => {
+      publications++;
+      assert(init.body instanceof URLSearchParams);
+      assert(init.body.get("url")?.includes("X-Amz-Signature"));
+      return new Response(JSON.stringify({ id: "published-once" }), {
+        headers: { "content-type": "application/json" },
+      });
+    },
+  );
+  try {
+    f.db
+      .prepare("INSERT INTO media VALUES (?,?,?,?,?,?)")
+      .run(
+        mediaId,
+        f.a.id,
+        "photo.jpg",
+        "image/jpeg",
+        bytes.length,
+        new Date().toISOString(),
+      );
+    const a = f.account();
+    assert.throws(
+      () => savePost(f.db, f.b.id, { mediaIds: [mediaId] }),
+      /Media|media/,
+    );
+    const post = savePost(f.db, f.a.id, {
+      caption: "R2 retry",
+      mediaIds: [mediaId],
+      targets: [{ accountId: a.id, format: "image" }],
+    });
+    schedulePost(f.db, f.a.id, post.id, { immediate: true });
+    await processNext(f.db, f.config, "worker");
+    const job = f.db
+      .prepare("SELECT status,checkpoint,error FROM jobs WHERE postId=?")
+      .get(post.id);
+    assert.deepEqual(job, {
+      status: "scheduled",
+      checkpoint: '{"retryCount":1}',
+      error:
+        "R2 media preparation failed. Check server configuration, bucket access, and the local media file, then retry.",
+    });
+    assert.equal(publications, 0);
+    unavailable = false;
+    f.db
+      .prepare("UPDATE jobs SET availableAt=? WHERE postId=?")
+      .run(new Date().toISOString(), post.id);
+    await processNext(f.db, f.config, "worker");
+    assert.equal(getPost(f.db, f.a.id, post.id).state, "published");
+    assert.equal(publications, 1);
+    assert.equal(await processNext(f.db, f.config, "worker"), false);
+    assert.equal(publications, 1);
+    const saved = JSON.stringify(
+      f.db
+        .prepare("SELECT checkpoint,error,url FROM jobs WHERE postId=?")
+        .get(post.id),
+    );
+    assert(!/X-Amz|private-signature|test-secret/.test(saved));
+  } finally {
+    f.close();
+  }
+});

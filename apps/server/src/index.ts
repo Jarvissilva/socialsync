@@ -5,7 +5,7 @@ const config = loadConfig();
 const db = openDatabase(config.databasePath);
 const server = createApp(db, config).listen(config.port, config.host, () =>
   console.log(
-    `SocialDesk API listening at http://${config.host}:${config.port}`,
+    `SocialSync API listening at http://${config.host}:${config.port}`,
   ),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const)

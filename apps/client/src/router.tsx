@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, redirect, type RouteObject } from "react-router";
 import { Loading } from "@/components/feedback/Feedback";
 import { RootLayout } from "@/layouts/RootLayout";
 import { HomePage } from "@/pages/HomePage";
@@ -24,7 +24,12 @@ import {
   impactLoader,
   boardsLoader,
 } from "@/routes/accounts";
-export const routes = [
+import {
+  providerAppsLoader,
+  providerAppsResourceLoader,
+  providerAppsAction,
+} from "@/routes/provider-apps";
+export const routes: RouteObject[] = [
   {
     id: "root",
     loader: rootLoader,
@@ -32,6 +37,26 @@ export const routes = [
     HydrateFallback: Loading,
     ErrorBoundary: RouteErrorPage,
     children: [
+      {
+        id: "provider-apps",
+        path: "/accounts/config",
+        loader: providerAppsLoader,
+        action: providerAppsAction,
+        lazy: async () => ({
+          Component: (await import("@/pages/ProviderAppsPage"))
+            .ProviderAppsPage,
+        }),
+      },
+      {
+        path: "/provider-apps",
+        loader: ({ request }) =>
+          redirect(`/accounts/config${new URL(request.url).search}`),
+      },
+      {
+        id: "provider-apps-resource",
+        path: "/resources/provider-apps",
+        loader: providerAppsResourceLoader,
+      },
       { id: "home", path: "/", Component: HomePage },
       {
         id: "account-library",
@@ -97,14 +122,12 @@ export const routes = [
             }),
           },
           {
-            id: "project-accounts",
             path: "accounts",
-            loader: accountsLoader,
+            loader: ({ params, request }) =>
+              redirect(
+                `/projects/${params.projectId}/settings/accounts${new URL(request.url).search}`,
+              ),
             action: accountsAction,
-            lazy: async () => ({
-              Component: (await import("@/pages/AccountsPage"))
-                .ProjectAccountsPage,
-            }),
           },
           {
             id: "settings",
@@ -114,6 +137,25 @@ export const routes = [
             lazy: async () => ({
               Component: (await import("@/pages/SettingsPage")).SettingsPage,
             }),
+            children: [
+              {
+                index: true,
+                lazy: async () => ({
+                  Component: (await import("@/pages/SettingsPage"))
+                    .GeneralSettingsPage,
+                }),
+              },
+              {
+                id: "project-accounts",
+                path: "accounts",
+                loader: accountsLoader,
+                action: accountsAction,
+                lazy: async () => ({
+                  Component: (await import("@/pages/AccountsPage"))
+                    .ProjectAccountsPage,
+                }),
+              },
+            ],
           },
         ],
       },

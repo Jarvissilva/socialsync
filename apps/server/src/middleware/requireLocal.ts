@@ -25,7 +25,7 @@ export function requireLocal(config: Config): RequestHandler {
         origin !== `http://localhost:${config.port}`
       )
         throw new HttpError(403, "Request origin is not allowed.");
-      if (req.get("x-socialdesk-client") !== "1")
+      if (req.get("x-socialsync-client") !== "1")
         throw new HttpError(403, "Missing local application request header.");
     }
     next();

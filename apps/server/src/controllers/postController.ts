@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import type { Config } from "../config.js";
 import type { DB } from "../database.js";
-import { idSchema } from "@social/shared";
+import { idSchema } from "@socialsync/shared";
 import * as workspace from "../services/workspaceService.js";
 import { projectId as pid } from "../lib/getProjectId.js";
 export function postController(db: DB, _config: Config) {

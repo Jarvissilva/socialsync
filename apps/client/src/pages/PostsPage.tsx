@@ -25,9 +25,7 @@ export function PostsPage() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">YOUR CONTENT, ORGANIZED</span>
           <h1>Posts</h1>
-          <p>Every draft, scheduled idea, and published story in one place.</p>
         </div>
         <Button asChild>
           <Link to={`/projects/${project.id}/compose`}>
@@ -68,7 +66,7 @@ export function PostsPage() {
                 <tr>
                   <th>Post</th>
                   <th>Channels</th>
-                  <th>Publishing time</th>
+                  <th>Publishing time · {project.timeZone}</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -111,14 +109,12 @@ export function PostsPage() {
         ) : (
           <EmptyState
             title={
-              search || filter !== "all"
-                ? "No matching posts"
-                : "Your next post starts here"
+              search || filter !== "all" ? "No matching posts" : "No posts yet"
             }
             description={
               search || filter !== "all"
                 ? "Try another search or filter."
-                : "Create your first draft and give it a place on your calendar."
+                : undefined
             }
           >
             <Button variant="outline" asChild>

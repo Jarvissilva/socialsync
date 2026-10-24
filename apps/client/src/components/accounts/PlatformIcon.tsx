@@ -1,5 +1,5 @@
 import { Instagram, Facebook, Youtube, Pin } from "lucide-react";
-import type { Platform } from "@social/shared";
+import type { Platform } from "@socialsync/shared";
 const icons = {
   instagram: Instagram,
   facebook: Facebook,

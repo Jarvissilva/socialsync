@@ -193,7 +193,7 @@ test("HTTP endpoints enforce project ownership and protect the local dashboard",
       (
         await inject(app, "POST", "/api/projects", {
           headers: {
-            "x-socialdesk-client": "1",
+            "x-socialsync-client": "1",
             origin: "https://hostile.example",
           },
           body: { name: "Bad origin" },
@@ -211,7 +211,7 @@ test("HTTP endpoints enforce project ownership and protect the local dashboard",
           app,
           "POST",
           `/api/projects/${f.b.id}/posts/${p.id}/cancel`,
-          { headers: { "x-socialdesk-client": "1" }, body: {} },
+          { headers: { "x-socialsync-client": "1" }, body: {} },
         )
       ).status,
       404,

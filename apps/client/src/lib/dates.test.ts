@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { dateTimeInput, zonedInputToIso, dayKey } from "./dates";
-import { validateContent, targetInputSchema } from "@social/shared";
+import { validateContent, targetInputSchema } from "@socialsync/shared";
 describe("project time zones", () => {
   it("converts independently of the computer time zone", () => {
     expect(zonedInputToIso("2026-10-22T18:30", "Asia/Kolkata")).toBe(

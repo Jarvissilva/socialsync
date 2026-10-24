@@ -19,7 +19,7 @@ export function Loading() {
   return (
     <div className="empty">
       <LoaderCircle className="animate-spin" size={24} />
-      <p>Loading your workspace…</p>
+      <p>Loading…</p>
     </div>
   );
 }
@@ -29,7 +29,7 @@ export function EmptyState({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children?: ReactNode;
 }) {
   return (
@@ -38,7 +38,7 @@ export function EmptyState({
         <Inbox size={25} />
       </div>
       <h2>{title}</h2>
-      <p>{description}</p>
+      {description && <p>{description}</p>}
       {children}
     </div>
   );
@@ -50,7 +50,7 @@ export function Modal({
   onClose,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
   onClose: () => void;
 }) {
@@ -61,10 +61,13 @@ export function Modal({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="max-h-[85vh] overflow-y-auto"
+        {...(!description ? { "aria-describedby": undefined } : {})}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         {children}
       </DialogContent>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { NavLink, Outlet, useFetcher, useRouteLoaderData } from "react-router";
 import type { settingsLoader, workspaceAction } from "@/routes/workspace";
 import { Save, Check } from "lucide-react";
 import { useProject } from "@/layouts/ProjectLayout";
@@ -7,25 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ErrorMessage } from "@/components/feedback/Feedback";
 export function SettingsPage() {
+  const project = useProject();
+  return (
+    <>
+      <div className="page-heading">
+        <h1>Settings</h1>
+      </div>
+      <nav className="section-tabs" aria-label="Project settings">
+        <NavLink to={`/projects/${project.id}/settings`} end>
+          General
+        </NavLink>
+        <NavLink to={`/projects/${project.id}/settings/accounts`}>
+          Accounts
+        </NavLink>
+      </nav>
+      <Outlet context={project} />
+    </>
+  );
+}
+export function GeneralSettingsPage() {
   const project = useProject(),
-    { health } = useLoaderData<typeof settingsLoader>();
+    { health } = useRouteLoaderData<typeof settingsLoader>("settings")!;
   const [name, setName] = useState(project.name),
     [timeZone, setTimeZone] = useState(project.timeZone);
   const save = useFetcher<typeof workspaceAction>();
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">MAKE IT YOURS</span>
-          <h1>Project settings</h1>
-          <p>Manage this project’s name and publishing time zone.</p>
-        </div>
-      </div>
       <div className="settings-grid">
         <section className="panel settings-panel">
           <h2>General</h2>
-          <p>Changes apply only to this project.</p>
-          <save.Form className="form-stack" method="post">
+          <save.Form
+            className="form-stack"
+            method="post"
+            action={`/projects/${project.id}/settings`}
+          >
             <input type="hidden" name="intent" value="save-settings" />
             <label>
               Project name
@@ -46,8 +61,8 @@ export function SettingsPage() {
                 onChange={(e) => setTimeZone(e.target.value)}
               />
               <span className="help-text">
-                Use an IANA zone, such as Asia/Kolkata or Europe/London.
-                Existing scheduled instants stay unchanged.
+                IANA zone, e.g. Asia/Kolkata. Existing scheduled times stay
+                unchanged.
               </span>
             </label>
             <ErrorMessage
@@ -78,7 +93,7 @@ export function SettingsPage() {
             </span>
           </div>
           <div className="readiness-row">
-            <span>Public media delivery</span>
+            <span>Media delivery</span>
             <span
               className={`status ${health.publicMediaReady ? "published" : "paused"}`}
             >
@@ -86,9 +101,9 @@ export function SettingsPage() {
             </span>
           </div>
           <p className="help-text">
-            Keep your computer awake and connected to publish on time. Configure
-            your HTTPS tunnel in the server environment for platforms that fetch
-            uploaded media.
+            Keep this computer awake and connected for scheduled publishing.
+            Media delivery requires private R2 or an HTTPS tunnel. Configured
+            delivery may still be unreachable.
           </p>
         </section>
       </div>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema } from "@social/shared";
+import { idSchema } from "@socialsync/shared";
 import { ApiError } from "@/lib/api";
 
 export type ActionResult<T> =

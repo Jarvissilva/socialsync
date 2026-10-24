@@ -1,4 +1,4 @@
-# SocialDesk
+# SocialSync
 
 - Use pnpm, TypeScript, ESM, and the existing workspace: `apps/client`, `apps/server`, `packages/shared`.
 - Follow OutreachIt's architecture and UI patterns, but do not introduce dependencies on its repository, database, credentials, or data directories.

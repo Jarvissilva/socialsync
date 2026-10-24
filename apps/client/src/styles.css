@@ -79,9 +79,9 @@
     margin: 0;
   }
   h1 {
-    font-size: 29px;
+    font-size: 24px;
     font-weight: 650;
-    letter-spacing: -1px;
+    letter-spacing: -0.6px;
     line-height: 1.4;
   }
   h2 {
@@ -162,16 +162,17 @@
     inset: 0 auto 0 0;
     background: #fff;
     border-right: 1px solid #e1e7df;
-    padding: 27px 17px 18px;
+    padding: 20px 16px 16px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     z-index: 20;
   }
   .sidebar > .brand {
-    margin: 0 10px 28px;
+    margin: 0 10px 20px;
   }
   .project-switch {
-    height: 46px;
+    height: 40px;
     gap: 9px;
     padding: 7px 10px;
     justify-content: flex-start;
@@ -195,19 +196,15 @@
     font-weight: 600;
     flex-shrink: 0;
   }
-  .nav-caption {
-    font-size: 9px;
-    font-weight: 650;
-    letter-spacing: 1.6px;
-    color: #99a397;
-    padding: 29px 12px 13px;
+  .sidebar > nav {
+    margin-top: 20px;
   }
   .sidebar nav {
     display: grid;
     gap: 5px;
   }
   .sidebar nav a {
-    height: 41px;
+    height: 36px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -227,33 +224,9 @@
   .sidebar nav a.active svg {
     stroke-width: 2;
   }
-  .sidebar-bottom {
+  .sidebar > .sidebar-bottom {
     margin-top: auto;
     padding-top: 30px;
-  }
-  .sidebar-bottom > a {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    font-size: 11px;
-    color: #78846e;
-    padding: 10px 13px;
-  }
-  .sidebar-bottom > a svg:last-child:not(:first-child) {
-    margin-left: auto;
-  }
-  .worker-indicator {
-    margin: 17px 8px 0;
-    border-top: 1px solid #e9ede5;
-    padding: 19px 4px 0;
-    font-size: 10px;
-    color: #7c8974;
-  }
-  .worker-indicator small {
-    display: block;
-    margin: 5px 0 0 13px;
-    font-size: 9px;
-    color: #9ca68f;
   }
   .live-dot,
   .offline-dot,
@@ -275,65 +248,17 @@
     flex: 1;
     min-width: 0;
   }
-  .workspace-bar {
-    height: 62px;
-    background: #fdfefb;
-    border-bottom: 1px solid #e7ece3;
-    padding: 0 33px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 10px;
-    color: #839077;
-  }
-  .workspace-bar > span:first-child {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-  .workspace-bar strong {
-    font-weight: 500;
-    color: #53684a;
-  }
-  .breadcrumb-slash {
-    color: #c0c8b7;
-    margin: 0 7px;
-  }
-  .local-badge {
-    border: 1px solid #e0e8d8;
-    padding: 5px 8px;
-    border-radius: 5px;
-    background: #fafcf7;
-    font-size: 9px;
-  }
   .workspace-content {
     max-width: 1530px;
     margin: 0 auto;
     padding: 32px 33px 50px;
-  }
-  .eyebrow {
-    font-size: 9px;
-    letter-spacing: 1.65px;
-    color: #8e9a81;
-    font-weight: 600;
-    display: block;
-    margin-bottom: 8px;
   }
   .page-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    margin-bottom: 28px;
-  }
-  .page-heading p {
-    margin-top: 5px;
-    font-size: 12px;
-  }
-  .page-heading h2 {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+    margin-bottom: 18px;
   }
   .actions {
     display: flex;
@@ -355,9 +280,8 @@
   }
   .panel {
     border: 1px solid #e1e7df;
-    border-radius: 10px;
+    border-radius: 8px;
     background: #fff;
-    box-shadow: 0 2px 4px #243a2502;
     overflow: hidden;
   }
   .panel-heading {
@@ -386,22 +310,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 69px;
+    margin-bottom: 32px;
     gap: 15px;
-  }
-  .directory-intro {
-    margin-bottom: 47px;
-  }
-  .directory-intro h1 {
-    font-size: 38px;
-    letter-spacing: -1.5px;
-  }
-  .directory-intro p {
-    margin-top: 10px;
-    font-size: 14px;
-  }
-  .directory-intro .eyebrow {
-    margin-bottom: 11px;
   }
   .project-grid {
     display: grid;
@@ -412,39 +322,62 @@
     transition:
       border-color 0.15s,
       transform 0.15s;
-    box-shadow: none;
-    padding: 22px 0 0;
-    gap: 0;
+  }
+  .project-card-link .project-card {
+    height: 100%;
   }
   .project-card-link:hover .project-card {
     border-color: #99b99d;
     transform: translateY(-2px);
   }
-  .project-card [data-slot="card-content"] {
-    padding: 0 21px;
+  .project-create-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    min-height: 206px;
+    padding: 24px;
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    background: transparent;
+    text-align: center;
+  }
+  .project-create-card:hover {
+    background: var(--color-accent);
+    border-color: var(--color-primary);
+  }
+  .project-create-card:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+  }
+  .project-create-title {
+    font-size: 16px;
+    font-weight: 600;
   }
   .project-card-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 23px;
-    color: #a0ad93;
+    margin-bottom: 12px;
+    color: #768078;
   }
   .project-folder {
-    width: 47px;
-    height: 47px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     background: #edf4e8;
     color: #6d895c;
-    border-radius: 12px;
+    border-radius: 6px;
   }
   .project-card h2 {
-    font-size: 17px;
+    font-size: 15px;
+    overflow-wrap: anywhere;
   }
   .project-card p {
     font-size: 11px;
-    margin: 6px 0 25px;
+    margin: 4px 0 16px;
   }
   .project-card-footer {
     display: flex;
@@ -458,56 +391,6 @@
     display: flex;
     align-items: center;
     gap: 9px;
-  }
-  .new-project-card {
-    min-height: 233px;
-    border: 1px dashed #d6e1cf;
-    border-radius: 12px;
-    color: #809072;
-    background: transparent;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 12px;
-  }
-  .new-project-card strong {
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .new-project-card span {
-    font-size: 10px;
-    color: #a1ab97;
-  }
-  .new-project-card:hover {
-    background: #f1f5ec;
-  }
-  .directory-note {
-    margin-top: 31px;
-    padding: 21px;
-    background: #f0f4eb;
-    border: 1px solid #e3eadb;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    color: #6c815c;
-  }
-  .directory-note strong {
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .directory-note p {
-    font-size: 10px;
-    margin-top: 4px;
-    color: #8a977f;
-  }
-  .directory-note a {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 10px;
-    white-space: nowrap;
   }
   .stats-grid {
     display: grid;
@@ -534,10 +417,6 @@
     font-size: 31px;
     letter-spacing: -1px;
     margin: 14px 0 6px;
-  }
-  .stat-card > small {
-    font-size: 9px;
-    color: #a0aa95;
   }
   .calendar-toolbar {
     min-height: 72px;
@@ -763,8 +642,8 @@
     justify-items: center;
     text-align: center;
     gap: 13px;
-    padding: 65px 25px;
-    min-height: 230px;
+    padding: 36px 24px;
+    min-height: 180px;
   }
   .empty p {
     max-width: 370px;
@@ -785,32 +664,6 @@
   }
   .empty button {
     margin-top: 9px;
-  }
-  .info-strip {
-    background: #eff5ed;
-    border: 1px solid #e1eadc;
-    padding: 13px 16px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #7c926b;
-    margin-bottom: 23px;
-  }
-  .info-strip p {
-    font-size: 11px;
-    color: #7e906f;
-  }
-  .info-strip > svg {
-    flex-shrink: 0;
-  }
-  .info-strip > a {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    font-size: 10px;
-    white-space: nowrap;
   }
   .platform-icon {
     width: 39px;
@@ -847,16 +700,17 @@
     gap: 18px;
   }
   .account-card {
-    padding: 20px;
+    padding: 16px;
   }
   .account-card-heading {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 22px;
+    margin-bottom: 18px;
     gap: 10px;
   }
-  .account-card h2 {
+  .account-card h2,
+  .provider-app-card h3 {
     font-size: 15px;
     overflow-wrap: anywhere;
   }
@@ -898,6 +752,8 @@
     border-radius: 8px;
   }
   .account-choice > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
     flex: 1;
   }
   .account-choice strong {
@@ -1005,9 +861,8 @@
   .settings-panel {
     padding: 24px;
   }
-  .settings-panel > p {
-    margin: 7px 0 24px;
-    font-size: 11px;
+  .settings-panel > h2 {
+    margin-bottom: 20px;
   }
   .settings-panel .help-text {
     margin-top: 18px;
@@ -1271,6 +1126,46 @@
     border-bottom: 1px solid #e5ecdd;
     flex-wrap: wrap;
   }
+  .section-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 24px;
+    padding: 0 0 8px;
+  }
+  .section-tabs > a,
+  .section-tabs > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+  }
+  .section-tabs > :hover {
+    background: var(--color-muted);
+    color: var(--foreground);
+  }
+  .section-tabs > [data-state="active"],
+  .section-tabs > [aria-current="page"] {
+    background: var(--color-secondary);
+    color: var(--color-secondary-foreground);
+  }
+  .section-tabs > :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: -2px;
+  }
+  .tab-count {
+    font-size: 11px;
+    padding: 1px 6px;
+    background: var(--background);
+    border-radius: 5px;
+    font-variant-numeric: tabular-nums;
+  }
   .filter-tabs {
     display: flex;
     gap: 5px;
@@ -1432,9 +1327,6 @@
     .stats-grid {
       gap: 9px;
     }
-    .stat-card > small {
-      font-size: 8px;
-    }
     .page-heading {
       flex-wrap: wrap;
     }
@@ -1473,18 +1365,11 @@
     .app-shell {
       display: block;
     }
-    .workspace-bar {
-      padding: 0 19px;
-      height: 48px;
-    }
-    .local-badge {
-      display: none;
-    }
     .workspace-content {
       padding: 25px 17px 40px;
     }
     h1 {
-      font-size: 26px;
+      font-size: 24px;
     }
     .stats-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1505,7 +1390,7 @@
       padding: 23px 18px 40px;
     }
     .directory-top {
-      margin-bottom: 46px;
+      margin-bottom: 28px;
     }
     .directory-top > a[data-slot="button"] {
       font-size: 10px;
@@ -1513,19 +1398,6 @@
     }
     .directory-top > a[data-slot="button"] svg:last-child {
       display: none;
-    }
-    .directory-intro h1 {
-      font-size: 31px;
-    }
-    .directory-intro p {
-      font-size: 12px;
-    }
-    .directory-note {
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-    .directory-note a {
-      margin-left: 32px;
     }
     .calendar-toolbar {
       padding: 15px 12px;
@@ -1562,12 +1434,6 @@
     .compose-action-bar button svg {
       width: 13px;
     }
-    .info-strip {
-      align-items: flex-start;
-    }
-    .info-strip > a {
-      display: none;
-    }
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -1577,4 +1443,24 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+.provider-app-card h3,
+.provider-app-card p,
+.provider-app-card code,
+.provider-app-callback {
+  overflow-wrap: anywhere;
+}
+.provider-app-card .account-card-actions {
+  margin-top: 16px;
+}
+[data-slot="dialog-content"] {
+  overflow-wrap: anywhere;
+}
+[data-slot="dialog-title"] {
+  padding-right: 20px;
+}
+
+.config-provider-group {
+  margin-bottom: 32px;
 }

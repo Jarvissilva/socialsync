@@ -45,19 +45,16 @@ export function CalendarPage() {
         (p) => p.state === "scheduled" || p.state === "processing",
       ).length,
       icon: CalendarDays,
-      hint: "Ready for their moment",
     },
     {
       label: "Published",
       value: data.filter((p) => p.state === "published").length,
       icon: CheckCircle2,
-      hint: "Out in the world",
     },
     {
       label: "Drafts",
       value: data.filter((p) => p.state === "draft").length,
       icon: PenLine,
-      hint: "Ideas taking shape",
     },
     {
       label: "Needs attention",
@@ -65,16 +62,13 @@ export function CalendarPage() {
         ["needs_attention", "failed", "paused", "partial"].includes(p.state),
       ).length,
       icon: Clock3,
-      hint: "A quick check needed",
     },
   ];
   return (
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">PLAN SOMETHING GREAT</span>
-          <h1>Publishing calendar</h1>
-          <p>Your content, with a little room to breathe.</p>
+          <h1>Calendar</h1>
         </div>
         <Button asChild>
           <Link to={`/projects/${project.id}/compose`}>
@@ -91,7 +85,6 @@ export function CalendarPage() {
               <s.icon size={17} />
             </div>
             <strong>{s.value}</strong>
-            <small>{s.hint}</small>
           </div>
         ))}
       </div>
@@ -212,11 +205,10 @@ export function CalendarPage() {
       </section>
       {!data.length && (
         <p className="calendar-empty-note">
-          A clear calendar, a fresh start.{" "}
+          No posts yet.{" "}
           <Link to={`/projects/${project.id}/compose`}>
             Create your first post
-          </Link>{" "}
-          to fill it with something good.
+          </Link>
         </p>
       )}
       {current && (

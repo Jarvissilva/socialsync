@@ -8,7 +8,7 @@ import {
   CalendarClock,
   PenLine,
 } from "lucide-react";
-import { platformNames, type Post } from "@social/shared";
+import { platformNames, type Post } from "@socialsync/shared";
 import { useProject } from "@/layouts/ProjectLayout";
 import { displayDate } from "@/lib/dates";
 import { Button } from "@/components/ui/button";

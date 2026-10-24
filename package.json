@@ -1,5 +1,5 @@
 {
-  "name": "social-media-manager",
+  "name": "socialsync",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.22.0",
@@ -8,13 +8,14 @@
   },
   "scripts": {
     "setup:local": "node scripts/setup.mjs",
-    "dev": "pnpm --filter @social/shared build && pnpm -r --parallel dev",
+    "dev": "pnpm --filter @socialsync/shared build && pnpm -r --parallel dev",
     "build": "pnpm -r build",
-    "start": "pnpm --filter @social/server start",
-    "worker": "pnpm --filter @social/server worker",
-    "typecheck": "pnpm --filter @social/shared build && pnpm -r typecheck",
-    "test": "pnpm --filter @social/shared build && pnpm --filter @social/server test && pnpm --filter @social/client test",
-    "lint": "eslint ."
+    "start": "pnpm --filter @socialsync/server start",
+    "worker": "pnpm --filter @socialsync/server worker",
+    "typecheck": "pnpm --filter @socialsync/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @socialsync/shared build && pnpm --filter @socialsync/server test && pnpm --filter @socialsync/client test",
+    "lint": "eslint .",
+    "mcp": "node scripts/mcp.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

@@ -1,13 +1,17 @@
 import type { RequestHandler } from "express";
 import type { Config } from "../config.js";
 import type { DB } from "../database.js";
-import { join } from "node:path";
+import { relative } from "node:path";
 import { z } from "zod";
-import { idSchema, providerSchema } from "@social/shared";
+import { idSchema, providerSchema } from "@socialsync/shared";
 import { HttpError, verifySignature } from "../lib/security.js";
 import * as workspace from "../services/workspaceService.js";
 import * as accounts from "../services/accountService.js";
 import { ProviderError } from "../services/providerHttp.js";
+import {
+  instagramVariant,
+  mediaPath,
+} from "../services/instagramMediaService.js";
 export function publicController(db: DB, config: Config) {
   const deliverMedia: RequestHandler = (req, res) => {
     const projectId = idSchema.parse(req.params.projectId),
@@ -17,11 +21,15 @@ export function publicController(db: DB, config: Config) {
       .regex(/^\d{13}$/)
       .parse(req.query.expires);
     const signed = z.string().parse(req.query.signature);
+    const variant = z
+      .literal(instagramVariant)
+      .optional()
+      .parse(req.query.variant);
     if (
       Number(expires) < Date.now() ||
       Number(expires) > Date.now() + 25 * 60 * 60 * 1000 ||
       !verifySignature(
-        `${projectId}:${id}:${expires}`,
+        `${projectId}:${id}:${expires}${variant ? `:${variant}` : ""}`,
         signed,
         config.encryptionKey,
       )
@@ -29,8 +37,13 @@ export function publicController(db: DB, config: Config) {
       throw new HttpError(403, "This media link has expired or is invalid.");
     const media = workspace.getMedia(db, projectId, id);
     res.setHeader("Cache-Control", "private, no-store");
-    res.type(media.mime);
-    res.sendFile(join(config.mediaDir, id));
+    res.type(variant ? "image/jpeg" : media.mime);
+    res.sendFile(
+      relative(config.mediaDir, mediaPath(config.mediaDir, media, variant)),
+      {
+        root: config.mediaDir,
+      },
+    );
   };
   const oauthCallback: RequestHandler = async (req, res) => {
     const platform = providerSchema.parse(req.params.platform);

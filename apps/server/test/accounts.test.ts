@@ -47,6 +47,7 @@ test("OAuth discovers identities and saves one shared account with a project ass
       { status: 200, headers: { "content-type": "application/json" } },
     );
   try {
+    f.providerApp("youtube");
     const pending = beginConnection(f.db, f.config, "youtube", {
       projectId: f.a.id,
     });
@@ -112,7 +113,9 @@ test("reconnection preserves the library identity and assignments in every proje
       ],
     };
     f.db
-      .prepare("INSERT INTO discoveries VALUES (?,?,?,?,?,?)")
+      .prepare(
+        "INSERT INTO discoveries (id,platform,projectId,reconnectAccountId,payload,expiresAt,providerAppId) VALUES (?,?,?,?,?,?,?)",
+      )
       .run(
         id,
         "facebook",
@@ -120,6 +123,7 @@ test("reconnection preserves the library identity and assignments in every proje
         a.id,
         encrypt(payload, f.config.encryptionKey),
         new Date(Date.now() + 60000).toISOString(),
+        f.providerApp("facebook"),
       );
     assert(acquireLock(f.db, `connection:${a.connectionId}`, "busy"));
     assert.throws(
@@ -153,20 +157,18 @@ test("refreshing a shared authorization persists the new token for subsequent pr
   };
   try {
     const a = f.account("youtube");
-    f.db
-      .prepare("UPDATE connections SET tokens=? WHERE id=?")
-      .run(
-        encrypt(
-          {
-            accessToken: "old",
-            refreshToken: "refresh",
-            expiresAt: 1,
-            accountTokens: {},
-          },
-          f.config.encryptionKey,
-        ),
-        a.connectionId,
-      );
+    f.db.prepare("UPDATE connections SET tokens=? WHERE id=?").run(
+      encrypt(
+        {
+          accessToken: "old",
+          refreshToken: "refresh",
+          expiresAt: 1,
+          accountTokens: {},
+        },
+        f.config.encryptionKey,
+      ),
+      a.connectionId,
+    );
     await usableTokens(f.db, f.config, a.connectionId);
     await usableTokens(f.db, f.config, a.connectionId);
     assert.equal(calls, 1);

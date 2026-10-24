@@ -1,5 +1,5 @@
 {
-  "name": "@social/server",
+  "name": "@socialsync/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,13 +9,18 @@
     "start": "node --env-file-if-exists=.env dist/index.js",
     "worker": "node --env-file-if-exists=.env dist/worker.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --experimental-test-isolation=none test/*.test.ts"
+    "test": "node --import tsx --test --experimental-test-isolation=none test/*.test.ts",
+    "mcp": "node --env-file-if-exists=.env dist/mcp.js"
   },
   "dependencies": {
-    "@social/shared": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1155.0",
+    "@aws-sdk/s3-request-presigner": "^3.1155.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@socialsync/shared": "workspace:*",
     "better-sqlite3": "^12.0.0",
     "express": "^5.1.0",
     "multer": "^2.0.2",
+    "sharp": "^0.35.5",
     "zod": "^4.0.0"
   },
   "devDependencies": {

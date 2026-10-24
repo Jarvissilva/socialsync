@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { unlinkSync } from "node:fs";
+import { rmSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import {
@@ -15,7 +15,7 @@ import {
   scheduleSchema,
   type Post,
   type Account,
-} from "@social/shared";
+} from "@socialsync/shared";
 import {
   one,
   many,
@@ -26,6 +26,8 @@ import {
   type Job,
 } from "../database.js";
 import { HttpError } from "../lib/security.js";
+
+import { variantDirectory } from "./instagramMediaService.js";
 
 export const now = () => new Date().toISOString();
 const projectRow = projectInputSchema.extend({
@@ -126,6 +128,7 @@ export function listAccounts(db: DB, projectId?: string): Account[] {
     return accountSchema.parse({
       ...a,
       provider: c?.platform || a.platform,
+      providerAppId: c?.providerAppId || null,
       status: c?.status || "disconnected",
       capabilities: z.array(formatSchema).parse(JSON.parse(a.capabilities)),
       projectIds: many(
@@ -232,6 +235,10 @@ export function deleteMedia(
       409,
       "This media is used by a post. Remove it from the post first.",
     );
+  rmSync(variantDirectory(mediaDir, { projectId, id }), {
+    recursive: true,
+    force: true,
+  });
   db.prepare("DELETE FROM media WHERE id=? AND projectId=?").run(id, projectId);
   try {
     unlinkSync(join(mediaDir, id));

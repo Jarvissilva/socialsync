@@ -25,7 +25,7 @@ import {
   type TargetInput,
   type Account,
   type Media,
-} from "@social/shared";
+} from "@socialsync/shared";
 import {
   Save,
   Send,
@@ -177,9 +177,7 @@ function Composer({
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">FROM IDEA TO PUBLISHED</span>
-          <h1>{initial ? "Edit post" : "Create a post"}</h1>
-          <p>One idea. Every channel. Make it yours before it goes live.</p>
+          <h1>{initial ? "Edit post" : "Create post"}</h1>
         </div>
         <Button variant="outline" asChild>
           <Link to={`/projects/${project.id}/posts`}>
@@ -220,12 +218,9 @@ function Composer({
                   ))}
                 </div>
               ) : (
-                <EmptyState
-                  title="Add your first account"
-                  description="Choose an account from your shared library to publish in this project."
-                >
+                <EmptyState title="No project accounts">
                   <Button variant="outline" asChild>
-                    <Link to={`/projects/${project.id}/accounts`}>
+                    <Link to={`/projects/${project.id}/settings/accounts`}>
                       Add accounts
                     </Link>
                   </Button>
@@ -314,6 +309,19 @@ function Composer({
                   ))}
                 </div>
               )}
+              {input.targets.some(
+                (target) =>
+                  accounts.find((account) => account.id === target.accountId)
+                    ?.platform === "instagram",
+              ) &&
+                selectedMedia.some((media) =>
+                  ["image/png", "image/webp", "image/gif"].includes(media.mime),
+                ) && (
+                  <p className="help-text">
+                    Images will be converted to JPEG for Instagram. Transparent
+                    areas will use white. Animated images aren’t supported.
+                  </p>
+                )}
               <div className="media-actions">
                 <Button variant="outline" onClick={() => setPicker(true)}>
                   <ImagePlus />
@@ -395,8 +403,7 @@ function Composer({
                 </div>
               )}
               <p className="preview-caption">
-                {input.caption ||
-                  "Your next great post starts with a few words…"}
+                {input.caption || "Caption preview"}
               </p>
               {selectedMedia.length > 1 && (
                 <small className="subtle">
@@ -408,8 +415,7 @@ function Composer({
           <div className="composer-tip">
             <CalendarClock size={18} />
             <p>
-              Choose a time that works for your audience. Your calendar uses{" "}
-              <strong>{project.timeZone}</strong>.
+              Time zone: <strong>{project.timeZone}</strong>.
             </p>
           </div>
         </aside>
@@ -452,7 +458,7 @@ function Composer({
       {picker && (
         <Modal
           title="Choose media"
-          description="Media is available only from this project. Select items in publishing order."
+          description="Select media in publishing order."
           onClose={() => setPicker(false)}
         >
           <div className="media-picker">
@@ -678,8 +684,7 @@ function TargetEditor({
               This video is made for kids
             </label>
             <p className="help-text">
-              Shorts classification is determined by YouTube from the uploaded
-              video. This app does not crop or edit your media.
+              YouTube determines Shorts eligibility from the uploaded video.
             </p>
           </>
         )}

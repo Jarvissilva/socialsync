@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { targetInputSchema } from "@social/shared";
+import { targetInputSchema } from "@socialsync/shared";
 import { type DB, one, jobSchema, accountRowSchema } from "../database.js";
 import type { Config } from "../config.js";
 import { usableTokens } from "./accountService.js";
@@ -13,19 +13,10 @@ import {
 import { ProviderError } from "./providerHttp.js";
 import { HttpError } from "../lib/security.js";
 
-export function acquireLock(db: DB, id: string, owner: string, ttl = 30_000) {
-  return (
-    db
-      .prepare(
-        "INSERT INTO locks VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,expiresAt=excluded.expiresAt WHERE locks.expiresAt<? OR locks.owner=excluded.owner",
-      )
-      .run(id, owner, new Date(Date.now() + ttl).toISOString(), now())
-      .changes === 1
-  );
-}
-export function releaseLock(db: DB, id: string, owner: string) {
-  db.prepare("DELETE FROM locks WHERE id=? AND owner=?").run(id, owner);
-}
+import { acquireLock, releaseLock } from "../lib/locks.js";
+export { acquireLock, releaseLock } from "../lib/locks.js";
+import { importProviderApps } from "./providerAppService.js";
+
 export type Publisher = (context: PublishContext) => Promise<PublishResult>;
 export async function processNext(
   db: DB,
@@ -252,10 +243,16 @@ export function recoverJobs(db: DB) {
     }
   })();
 }
+export class WorkerAlreadyRunningError extends Error {
+  constructor() {
+    super("Another publishing worker is already running.");
+    this.name = "WorkerAlreadyRunningError";
+  }
+}
 export function startWorker(db: DB, config: Config) {
+  importProviderApps(db, config);
   const owner = randomUUID();
-  if (!acquireLock(db, "worker", owner))
-    throw new Error("Another publishing worker is already running.");
+  if (!acquireLock(db, "worker", owner)) throw new WorkerAlreadyRunningError();
   recoverJobs(db);
   db.prepare(
     "UPDATE jobs SET status='needs_attention',error='Missed while the worker was offline.' WHERE status='scheduled' AND checkpoint='{}' AND availableAt<?",

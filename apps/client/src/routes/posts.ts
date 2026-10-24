@@ -11,7 +11,7 @@ import {
   mediaSchema,
   scheduleSchema,
   timeZoneSchema,
-} from "@social/shared";
+} from "@socialsync/shared";
 import { api, json } from "@/lib/api";
 import { zonedInputToIso } from "@/lib/dates";
 import {

@@ -5,10 +5,13 @@ import { fileURLToPath } from "node:url";
 import type { DB } from "./database.js";
 import type { Config } from "./config.js";
 import { publicRouter } from "./routes/publicRoutes.js";
+import { mcpRouter } from "./routes/mcpRoutes.js";
 import { apiRouter } from "./routes/index.js";
 import { requireLocal } from "./middleware/requireLocal.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { importProviderApps } from "./services/providerAppService.js";
 export function createApp(db: DB, config: Config) {
+  importProviderApps(db, config);
   const app = express();
   app.disable("x-powered-by");
   app.use((_req, res, next) => {
@@ -18,6 +21,7 @@ export function createApp(db: DB, config: Config) {
   });
   app.use("/public", publicRouter(db, config));
   app.use(requireLocal(config));
+  app.use("/mcp", mcpRouter(db, config));
   app.use(express.json({ limit: "1mb" }));
   app.use("/api", apiRouter(db, config));
   const clientDir = fileURLToPath(

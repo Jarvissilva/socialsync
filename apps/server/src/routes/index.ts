@@ -6,6 +6,7 @@ import { projectRouter } from "./projectRoutes.js";
 import { accountRouter } from "./accountRoutes.js";
 import { healthController } from "../controllers/healthController.js";
 import { projectController } from "../controllers/projectController.js";
+import { providerAppRouter } from "./providerAppRoutes.js";
 export function apiRouter(db: DB, config: Config) {
   const router = Router();
   {
@@ -19,6 +20,7 @@ export function apiRouter(db: DB, config: Config) {
     router.post("/projects", c.create);
     router.put("/projects/:projectId", c.update);
   }
+  router.use("/provider-apps", providerAppRouter(db, config));
   router.use("/accounts", accountRouter(db, config));
   router.use("/projects/:projectId", projectRouter(db, config));
   router.use(() => {

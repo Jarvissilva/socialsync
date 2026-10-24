@@ -3,7 +3,7 @@ import { useLoaderData } from "react-router";
 import { useRouteMutation } from "@/hooks/use-route-interaction";
 import type { mediaLoader } from "@/routes/media";
 import { Upload, Trash2, Film } from "lucide-react";
-import { type Media } from "@social/shared";
+import { type Media } from "@socialsync/shared";
 import { useProject } from "@/layouts/ProjectLayout";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorMessage } from "@/components/feedback/Feedback";
@@ -38,12 +38,7 @@ export function MediaPage() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">YOUR CONTENT COLLECTION</span>
-          <h1>Media library</h1>
-          <p>
-            Photos and videos for {project.name}. Only available in this
-            project.
-          </p>
+          <h1>Media</h1>
         </div>
         <Button
           disabled={upload.isPending}
@@ -98,10 +93,7 @@ export function MediaPage() {
         </div>
       ) : (
         <div className="panel upload-empty">
-          <EmptyState
-            title="Good content starts here"
-            description="Upload photos and videos, then reuse them in this project’s posts."
-          >
+          <EmptyState title="No media yet">
             <Button variant="outline" onClick={() => input.current?.click()}>
               <Upload />
               Choose a file

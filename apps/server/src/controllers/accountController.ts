@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import type { Config } from "../config.js";
 import type { DB } from "../database.js";
 import { z } from "zod";
-import { idSchema, providerSchema } from "@social/shared";
+import { idSchema, providerSchema } from "@socialsync/shared";
 import { one, accountRowSchema, many } from "../database.js";
 import { HttpError, signature } from "../lib/security.js";
 import * as workspace from "../services/workspaceService.js";

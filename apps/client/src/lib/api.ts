@@ -14,7 +14,7 @@ export async function api<T extends z.ZodType>(
   init: RequestInit = {},
 ): Promise<z.infer<T>> {
   const headers = new Headers(init.headers);
-  headers.set("X-SocialDesk-Client", "1");
+  headers.set("X-SocialSync-Client", "1");
   if (init.body && !(init.body instanceof FormData))
     headers.set("Content-Type", "application/json");
   const response = await fetch(`/api${path}`, { ...init, headers });

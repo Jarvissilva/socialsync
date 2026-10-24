@@ -1,113 +1,142 @@
-# SocialDesk
+# SocialSync
 
-A local social publishing workspace for Instagram, Facebook, Pinterest, and YouTube. Built with Vite, React, React Router, TypeScript, shadcn/ui, Express, and SQLite.
+Self-hosted social publishing, in one workspace.
 
-Connect an account once in the **Account library**, then explicitly add it to projects. Each project has its own posts, drafts, media, calendar, time zone, and publishing history. This app does not use OutreachIt's database, credentials, or media directories.
+Connect your accounts, prepare posts, and schedule content for Instagram, Facebook, Pinterest, and YouTube. Keep your database and original media on your machine.
 
-## Run locally
+[Get started](#get-started) · [Highlights](#highlights) · [Your first post](#your-first-post) · [Documentation](#documentation)
 
-Requires Node.js 22.13+ and pnpm 10.22.0. Dependencies include the native `better-sqlite3` module; platforms without a prebuilt binary need a working C++ build toolchain.
+SocialSync is a local-first publishing manager built with React, Node.js, SQLite, and TypeScript. Organize content into projects and choose which connected accounts each project can use.
+
+## Highlights
+
+| Feature | What you can do |
+| --- | --- |
+| Projects | Keep separate posts, media, calendars, time zones, and publishing history. |
+| Account library | Connect accounts once and explicitly assign them to projects. |
+| Compose & media | Upload original media, save drafts, and prepare content for multiple destinations. |
+| Scheduling | Publish now or schedule in your project's time zone with a persistent background worker. |
+| Publishing history | Review each destination's status, failures, and uncertain outcomes before retrying. |
+| Media delivery | Serve signed media through an HTTPS tunnel or use a private Cloudflare R2 cache. |
+| MCP | Work with projects, media, drafts, schedules, and publication outcomes from a trusted MCP client. |
+
+Available formats depend on the platform and account type. SocialSync does not crop or transcode videos, add licensed music, or provide interactive Story stickers. Platform permissions, app review, and quotas still apply.
+
+## Get started
+
+Requires **Node.js 22.13+** and **pnpm 10.22.0**. Native dependencies may need a C++ build toolchain when prebuilt binaries are unavailable.
+
+From your source checkout:
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm setup:local
 pnpm dev
 ```
 
-Open **http://127.0.0.1:5174**. The API runs at `127.0.0.1:3002`. These ports differ from OutreachIt's defaults so both apps can run together. Development starts the API and publishing worker together. Closing the browser does not stop the worker; stopping the command does.
+Open **http://127.0.0.1:5174**. The API runs on port `3002`; development starts the API and publishing worker together.
 
-`setup:local` creates `apps/server/.env` with a random encryption key and restrictive file permissions. It never replaces an existing file. Keep the same encryption key when restarting, updating, or restoring a backup.
+`setup:local` creates `apps/server/.env` with a random encryption key. It preserves an existing file. Keep `ENCRYPTION_KEY` unchanged and include it in your backups: saved account tokens and developer-app secrets depend on it.
 
-Create a project, configure developer credentials, connect an account in the library, add it to your project, upload media, and compose a post. Drafts can be incomplete; publishing validates each selected destination. Scheduling uses the **project's time zone**, independently of your computer's zone. Editing a scheduled post returns it to a draft; schedule it again after editing.
+You can create projects and prepare drafts immediately. Before connecting accounts or publishing, configure developer apps and media delivery as described below.
 
-## Connect developer apps
+SocialSync has no application authentication. Keep the dashboard on localhost. Only signed media links and browser-bound OAuth callbacks are intended for public tunnel access.
 
-Enter credentials in `apps/server/.env`, then restart the API and worker. Secrets never belong in Vite variables or the browser. New Facebook and Instagram connections use one combined Meta login with the same app ID and secret. Pinterest and YouTube have separate OAuth flows.
+## Your first post
 
-| Platform                 | Environment variables                            | Redirect path                      |
-| ------------------------ | ------------------------------------------------ | ---------------------------------- |
-| Facebook & Instagram     | `META_APP_ID`, `META_APP_SECRET`                 | `/public/oauth/meta/callback`      |
-| Existing Instagram Login | `INSTAGRAM_CLIENT_ID`, `INSTAGRAM_CLIENT_SECRET` | `/public/oauth/instagram/callback` |
-| Pinterest                | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | `/public/oauth/pinterest/callback` |
-| YouTube                  | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`     | `/public/oauth/youtube/callback`   |
+1. Create a project from Home and choose its time zone.
+2. Open **Accounts → Accounts config** and add your Meta, Pinterest, or YouTube developer-app credentials.
+3. Register the displayed callback URL with the provider, then connect an account in the account library.
+4. Assign the connected account to your project.
+5. Upload media and open Compose to choose destinations and prepare your post.
+6. Save a draft, review the content and destinations, then publish or schedule it.
 
-Register the exact redirect URI formed from `OAUTH_ORIGIN` plus the path above. For example: `http://127.0.0.1:3002/public/oauth/youtube/callback`. If a provider requires HTTPS, use your tunnel's HTTPS origin for `OAUTH_ORIGIN` and register that exact URL. Start authorization from the same browser you use for the app; OAuth callbacks require a matching, short-lived browser cookie.
+For platforms that fetch media by URL, configure an HTTPS media tunnel or private R2 cache first. Scheduling uses the project's time zone. Editing a scheduled post returns it to a draft; schedule it again after editing.
 
-- **Facebook & Instagram:** Choose **Connect Facebook & Instagram**. Facebook Login requests `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `instagram_basic`, and `instagram_content_publish`. Select Facebook Pages and/or their linked professional Instagram Business or Creator accounts in one dialog. A Page without linked Instagram remains available as a Facebook destination. Only selected destinations are saved and assigned to the chosen project. Personal Facebook profiles and consumer Instagram accounts are unsupported. Instagram images must be JPEG. Facebook Login discovery does not establish Business-only Story eligibility, so these Instagram connections offer images, carousels, and Reels. Existing direct Instagram Login connections still offer Stories when discovery identifies a Business account. Instagram publishing uses Facebook Graph and the linked Page token. Configure `META_GRAPH_VERSION` for your developer app.
-- **Credential compatibility:** If both `META_APP_ID` and `META_APP_SECRET` are unset, the existing `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` pair is used. Register the new `/public/oauth/meta/callback` URI on that same app. Existing Facebook callback URIs remain supported for in-flight authorization attempts. Do not combine credential halves from different apps.
-- **Existing Instagram Login:** Keep the original `INSTAGRAM_CLIENT_ID`, `INSTAGRAM_CLIENT_SECRET`, and Instagram callback registered. These accounts keep their original authorization, `instagram_business_basic` / `instagram_business_content_publish` permissions, Instagram Graph host, token refresh, internal IDs, assignments, and history. Use their library **Reconnect** control; new accounts use combined Meta login. Selecting an already connected direct Instagram identity in a new Meta connection returns a conflict instead of replacing its authorization.
-- **Shared access:** Reconnect and disconnect confirmations list every affected Facebook/Instagram destination and project. Reconnection requires access to every existing destination sharing the authorization, preserves all their IDs, and is blocked while publishing holds that authorization. Disconnect pauses pending work across its projects; reconnecting never automatically republishes it.
-- **Pinterest:** `boards:read`, `pins:read`, `pins:write`, and `user_accounts:read`. Choose a board in the composer. Trial access can limit newly created Pins to visibility only for their creator; verify the app's access tier before expecting public publication.
-- **YouTube:** Enable YouTube Data API v3 and configure OAuth with `youtube.upload` and `youtube.readonly`. Each saved identity represents a channel. Visibility and channel/API-project restrictions still apply. Shorts classification is determined by YouTube from the media, not a separate Shorts upload endpoint.
+Keep the computer online and the worker running for scheduled publishing. A failed destination does not resend destinations that already succeeded. Uncertain outcomes require checking the platform before retrying.
 
-App review, permissions, account eligibility, quotas, and media restrictions remain platform-controlled. The app validates basic content structure and reports provider failures. It does not transcode, crop, add licensed music, or offer interactive Story stickers. Every adapter is covered by mocked-provider tests; real account authorization and format acceptance must still be verified with your developer apps. No real social content is published by setup or tests.
+## Developer apps & media
 
-References: [Meta Instagram with Facebook Login](https://www.postman.com/meta/instagram/folder/u4g5a2a/instagram-api-with-facebook-login), [Facebook Page posts](https://developers.facebook.com/docs/pages-api/posts/), [Pinterest organic content](https://developer.pinterest.com/docs/work-with-organic-content-and-users/create-boards-and-pins/), [YouTube resumable uploads](https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol).
+Manage named developer apps in **Accounts → Accounts config**. Credentials are encrypted on the server and shared authorizations coordinate publishing and refresh across projects. New Facebook and Instagram connections use combined Meta login; Facebook Pages and supported professional Instagram accounts are available as destinations.
 
-## Media tunnel
+Set `OAUTH_ORIGIN` in `apps/server/.env` to the callback origin registered with each provider. Use your HTTPS tunnel origin when required, and start authorization in the same browser as the dashboard.
 
-For platforms that fetch media by URL, configure a temporary HTTPS tunnel forwarding to `http://127.0.0.1:3002`. For example, with `cloudflared` installed:
+Original media stays local in both delivery modes:
 
-```sh
-cloudflared tunnel --url http://127.0.0.1:3002
+- **Local tunnel:** keep `MEDIA_DELIVERY=local`, forward an HTTPS tunnel to the API port, and set `PUBLIC_MEDIA_ORIGIN`.
+- **Private R2 cache:** set `MEDIA_DELIVERY=r2` and the `R2_*` values in `.env`. Keep the bucket private and retain local originals; cached copies are disposable.
+
+See [provider setup and supported accounts](docs/guide.md#connect-developer-apps), [media delivery configuration](docs/guide.md#media-delivery), and [scheduler recovery](docs/guide.md#scheduler-and-recovery).
+
+## Data storage
+
+The default data directory is outside the repository:
+
+```text
+~/.local/share/socialsync/
+├── socialsync.sqlite
+└── media/
 ```
 
-Set `PUBLIC_MEDIA_ORIGIN` to the resulting HTTPS origin and restart the API/worker. If the address changes, update it and any registered HTTPS OAuth callbacks. Preserve the public Host header; do not configure a host-header override to `localhost`.
+Existing installations may retain `socialdesk.sqlite`; SocialSync continues using it when present. Set `DATA_DIR` to override the directory. Relative overrides resolve from `apps/server` with the supplied commands; use an absolute path instead of a literal `~` in `.env`. Changing this setting does not move existing data.
 
-Only `/public/media/...` with a valid, project-bound signature and `/public/oauth/...` callbacks are intended for tunnel access. Media links expire after 24 hours and are generated when publishing starts. Dashboard and API management requests reject public hostnames. Do not expose the application directly to a LAN or the internet: this is a single-user local tool without application authentication. A configured origin does not prove that a tunnel is currently reachable.
+Stop the API, worker, and stdio MCP processes before moving or backing up data. Copy the complete directory, including SQLite `-wal` and `-shm` files, and preserve `apps/server/.env` with the same encryption key. Data and `.env` are excluded from Git. See [backup and restore guidance](docs/guide.md#data-and-backups).
 
-## Scheduler and recovery
+## Documentation
 
-- Schedules persist in SQLite, stored as UTC instants. The worker checks due work every 15 seconds; platform upload and processing time can delay publication.
-- Each destination has independent status and history. A successful destination is never republished because another destination failed.
-- A shared authorization lock serializes publishing and token refresh across projects. The worker respects provider rate-limit responses with bounded exponential backoff.
-- Upload sessions, remote identifiers, processing checkpoints, and attempts survive restarts. YouTube video bytes upload in resumable 8 MiB chunks.
-- Missed, untouched posts more than 30 seconds overdue at worker startup need your attention. Publish them now, cancel, or create a new scheduled draft; they are not silently released in a batch.
-- Safe processing checkpoints resume after stale leases. Uncertain writes are held for review. In post details, check the real destination, then record its post ID or explicitly confirm it was not published before retrying.
-- Removing a project assignment is blocked by pending or uncertain work. Disconnecting a shared authorization pauses pending jobs in every affected project, including Facebook and Instagram destinations sharing that authorization. Reconnect, then explicitly resume affected destinations.
+### Run in production
 
-Keep the computer awake, online, and running both the worker and tunnel. Automatic posting is not guaranteed while your computer is asleep or off.
-
-## Production build on your computer
+Build and start the background services with PM2 installed:
 
 ```sh
 pnpm build
+pm2 start ecosystem.config.cjs
+pm2 save
 ```
 
-Set `APP_ORIGIN=http://127.0.0.1:3002` in the server environment. Then run these in separate terminals:
+Open **http://127.0.0.1:6003**. Express serves the built UI and API; PM2 runs a separate publishing worker. Both load `apps/server/.env`.
+
+Stop any existing development server or worker using the same database before starting production. Use `OAUTH_ORIGIN=http://127.0.0.1:6003` for local callbacks, or preserve your registered HTTPS callback origin. Forward media tunnels to port `6003` with this setup.
+
+After rebuilding, restart with `pm2 restart ecosystem.config.cjs --update-env`. A PM2 startup service is needed to restore saved processes after reboot. See [production setup](docs/guide.md#production-build-on-your-computer) for manual startup and configuration details.
+
+### Connect an MCP client
+
+MCP starts with the API. For the PM2 setup, use a client that supports Streamable HTTP:
+
+```json
+{
+  "mcpServers": {
+    "socialsync": {
+      "url": "http://127.0.0.1:6003/mcp",
+      "headers": {
+        "X-SocialSync-Client": "1"
+      }
+    }
+  }
+}
+```
+
+Use port `3002` during development or the default manual production setup. Connect only trusted local clients: MCP has access to the workspace. Publishing and scheduling tools perform real actions; invoke them only when intended.
+
+See [MCP configuration and tools](docs/mcp.md), including the alternative stdio launcher.
+
+### Development
+
+| Directory | Purpose |
+| --- | --- |
+| `apps/client` | React UI, Vite, React Router, and shadcn/ui. |
+| `apps/server` | Express API, SQLite, provider integrations, and publishing worker. |
+| `packages/shared` | Shared TypeScript contracts and validation. |
 
 ```sh
-pnpm start
-pnpm worker
-```
-
-Open **http://127.0.0.1:3002**. Express serves the built client and API on one origin. Only one publishing worker may run against a database at a time. Stop the development server before starting production on the same port. For unattended local use, configure your operating system's process manager to launch both commands from this repository and preserve `apps/server/.env`.
-
-## Data and backups
-
-By default, `data/socialdesk.sqlite` and `data/media/` belong solely to this app. `DATA_DIR` is resolved relative to the server's working directory (`apps/server` with the provided commands). Changing it creates or opens an independent installation; it does not import OutreachIt data.
-
-For a complete backup, stop API and worker, then copy the **entire `data/` directory**, including any SQLite WAL files, plus **`apps/server/.env`** to a protected location. Restore all of them together. Do not generate a new encryption key for an existing database. Keep backups private: captions and media are local plaintext; authorization tokens are encrypted with the environment key. Migrations run before requests or worker execution and fail startup if they cannot complete.
-
-## Workspace and checks
-
-```text
-apps/client/       React Router feature loaders/actions, layouts, pages, UI, hooks
-apps/server/       Express routes, workflow services, database, API and worker entrypoints
-packages/shared/   Public types, Zod contracts, content validation
-```
-
-```sh
-pnpm test
+pnpm dev        # Start the client, API, and publishing worker
+pnpm test       # Run server and client tests
 pnpm lint
 pnpm typecheck
 pnpm build
 ```
 
-The frontend uses React Router 7.18.4 Data Mode in the Vite SPA. Feature modules in `apps/client/src/routes/` own validated API reads and mutations. The `root` loader supplies the project directory and account library; the `project` loader resolves the URL’s project and scheduler health. Page loaders provide posts, composer data, media, accounts, and settings. Lazy components consume loader data; dialogs load provider readiness, discoveries, disconnect impact, and boards through fetchers.
+Development uses port `5174` for the UI and proxies `/api` and `/public` to port `3002`. Tests use isolated temporary databases and mocked providers; setup and tests never publish real content. API integration tests require local listening sockets.
 
-Actions validate explicit intents and use the existing Express API. Forms and fetcher submissions expose pending states and inline API errors; unexpected failures go to route boundaries. Successful actions automatically revalidate route data. OAuth uses a full document redirect. Draft saves stay in the composer, while scheduling and publishing redirect to Posts. A scheduling failure returns the saved draft ID so retries update the same draft.
-
-Router revalidation runs on window focus and every 15 seconds within project views for posts and scheduler health, skipping hidden tabs, active submissions, and overlapping refreshes. Local editor, filter, and dialog state survive revalidation; changing projects remounts the workspace. API requests receive the router request’s abort signal, and API errors retain their HTTP status. The Express API and durable worker retain their project boundaries and publishing safeguards.
-
-Tests use isolated temporary databases and mocked platform calls. API integration tests require local listening sockets. They never access your real database or social credentials. See [the API overview](docs/api.md) for project and account boundaries.
+For detailed configuration, authorization behavior, recovery, and architecture, read the [full guide](docs/guide.md). See the [API overview](docs/api.md) for project and account boundaries.

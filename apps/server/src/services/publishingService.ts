@@ -1,10 +1,12 @@
 import { openAsBlob } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
-import type { Media, TargetInput } from "@social/shared";
+import type { Media, TargetInput } from "@socialsync/shared";
 import type { Config } from "../config.js";
 import { accountRowSchema } from "../database.js";
-import { signature } from "../lib/security.js";
+import { prepareInstagramMedia } from "./instagramMediaService.js";
+import { mediaUrl } from "./mediaDeliveryService.js";
+export { mediaUrl } from "./mediaDeliveryService.js";
 import type { Tokens } from "./accountService.js";
 import { request, ProviderError, remoteIdSchema } from "./providerHttp.js";
 
@@ -37,15 +39,6 @@ export interface PublishResult {
   pending: boolean;
   remoteId?: string;
   url?: string;
-}
-export function mediaUrl(config: Config, media: Media) {
-  if (!config.publicMediaOrigin.startsWith("https://"))
-    throw new ProviderError(
-      "Set PUBLIC_MEDIA_ORIGIN to your active HTTPS tunnel before publishing media.",
-    );
-  const expires = String(Date.now() + 24 * 60 * 60 * 1000);
-  const value = `${media.projectId}:${media.id}:${expires}`;
-  return `${config.publicMediaOrigin}/public/media/${media.projectId}/${media.id}?expires=${expires}&signature=${signature(value, config.encryptionKey)}`;
 }
 function trustedUploadUrl(value: string, hosts: string[]) {
   const url = new URL(value);
@@ -110,14 +103,25 @@ async function instagram(
     const params: Record<string, string> = { caption };
     if (target.format === "carousel") {
       const children = cp.children || [];
+      const prepared: { item: Media; url: string }[] = [];
       for (let i = children.length; i < media.length; i++) {
         const item = media[i];
-        if (!item) continue;
+        if (item)
+          prepared.push({
+            item,
+            url: await mediaUrl(
+              config,
+              item,
+              await prepareInstagramMedia(config, item),
+            ),
+          });
+      }
+      for (const { item, url } of prepared) {
         const child: Record<string, string> = { is_carousel_item: "true" };
         if (item.mime.startsWith("video/")) {
           child.media_type = "VIDEO";
-          child.video_url = mediaUrl(config, item);
-        } else child.image_url = mediaUrl(config, item);
+          child.video_url = url;
+        } else child.image_url = url;
         children.push(
           remoteIdSchema.parse(await post(`${account.externalId}/media`, child))
             .id,
@@ -138,8 +142,13 @@ async function instagram(
       const item = media[0];
       if (!item) throw new ProviderError("Media is missing.");
       if (item.mime.startsWith("video/"))
-        params.video_url = mediaUrl(config, item);
-      else params.image_url = mediaUrl(config, item);
+        params.video_url = await mediaUrl(config, item);
+      else
+        params.image_url = await mediaUrl(
+          config,
+          item,
+          await prepareInstagramMedia(config, item),
+        );
       if (target.format === "reel") params.media_type = "REELS";
       if (target.format === "story") {
         params.media_type = "STORIES";
@@ -244,7 +253,7 @@ async function facebook(
           method: "POST",
           headers: {
             Authorization: `OAuth ${token}`,
-            file_url: mediaUrl(config, item),
+            file_url: await mediaUrl(config, item),
           },
         },
         true,
@@ -283,7 +292,7 @@ async function facebook(
         children.push(
           remoteIdSchema.parse(
             await post(`${account.externalId}/photos`, {
-              url: mediaUrl(config, m),
+              url: await mediaUrl(config, m),
               published: "false",
             }),
           ).id,
@@ -304,16 +313,17 @@ async function facebook(
       }
     } else {
       if (!item) throw new ProviderError("Select media.");
+      const url = await mediaUrl(config, item);
       save({ stage: "publishing" });
       result = await post(
         `${account.externalId}/${isVideo ? "videos" : "photos"}`,
         isVideo
           ? {
-              file_url: mediaUrl(config, item),
+              file_url: url,
               description: caption,
               title: target.title,
             }
-          : { url: mediaUrl(config, item), caption, published: "true" },
+          : { url, caption, published: "true" },
       );
     }
     const r = z
@@ -436,6 +446,7 @@ async function pinterest(
       false,
       true,
     );
+  const imageUrl = video ? undefined : await mediaUrl(config, item);
   save({ stage: "publishing" });
   const r = remoteIdSchema.parse(
     await request(
@@ -454,7 +465,7 @@ async function pinterest(
                 media_id: cp.mediaId,
                 cover_image_key_frame_time: 0,
               }
-            : { source_type: "image_url", url: mediaUrl(config, item) },
+            : { source_type: "image_url", url: imageUrl },
         }),
       },
       true,

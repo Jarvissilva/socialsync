@@ -7,7 +7,6 @@ import {
   useOutletContext,
   useLoaderData,
   useRouteLoaderData,
-  Link,
 } from "react-router";
 import {
   CalendarDays,
@@ -19,12 +18,11 @@ import {
   Plus,
   FolderOpen,
   ChevronsUpDown,
-  ArrowUpRight,
   Menu,
   X,
   Check,
 } from "lucide-react";
-import type { Project } from "@social/shared";
+import type { Project } from "@socialsync/shared";
 import type { rootLoader, projectLoader } from "@/routes/workspace";
 import { Brand } from "@/components/layout/Brand";
 import { ProjectDialog } from "@/components/projects/ProjectDialog";
@@ -41,8 +39,7 @@ const sections = [
   { path: "", label: "Calendar", icon: CalendarDays },
   { path: "/posts", label: "Posts", icon: Files },
   { path: "/compose", label: "Compose", icon: PenLine },
-  { path: "/media", label: "Media library", icon: Image },
-  { path: "/accounts", label: "Accounts", icon: Link2 },
+  { path: "/media", label: "Media", icon: Image },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 export function useProject() {
@@ -65,8 +62,7 @@ function ProjectWorkspace({
   const [creating, setCreating] = useState(false),
     [mobile, setMobile] = useState(false);
   const navigate = useNavigate(),
-    location = useLocation(),
-    { health } = useRouteLoaderData<typeof projectLoader>("project")!;
+    location = useLocation();
   const current =
     sections.find(
       (s) =>
@@ -81,12 +77,17 @@ function ProjectWorkspace({
           variant="ghost"
           size="icon"
           aria-label="Toggle navigation"
+          aria-expanded={mobile}
+          aria-controls="project-sidebar"
           onClick={() => setMobile(!mobile)}
         >
           {mobile ? <X /> : <Menu />}
         </Button>
       </header>
-      <aside className={`sidebar ${mobile ? "is-open" : ""}`}>
+      <aside
+        id="project-sidebar"
+        className={`sidebar ${mobile ? "is-open" : ""}`}
+      >
         <Brand />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -103,9 +104,14 @@ function ProjectWorkspace({
             {projects.map((p) => (
               <DropdownMenuItem
                 key={p.id}
-                onSelect={() => navigate(`/projects/${p.id}${current}`)}
+                onSelect={() => {
+                  setMobile(false);
+                  navigate(
+                    `/projects/${p.id}${current}${current === "/settings" && location.pathname.endsWith("/accounts") ? "/accounts" : ""}`,
+                  );
+                }}
               >
-                <span className="flex-1">{p.name}</span>
+                <span className="min-w-0 flex-1 break-words">{p.name}</span>
                 {p.id === project.id && <Check size={14} />}
               </DropdownMenuItem>
             ))}
@@ -120,7 +126,6 @@ function ProjectWorkspace({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <p className="nav-caption">WORKSPACE</p>
         <nav aria-label="Project navigation">
           {sections.map((s) => (
             <NavLink
@@ -134,40 +139,14 @@ function ProjectWorkspace({
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-bottom">
-          <Link to="/accounts">
-            <Link2 size={16} />
-            Account library
-            <ArrowUpRight size={14} />
-          </Link>
-          <Link to="/">
-            <FolderOpen size={16} />
-            All projects
-          </Link>
-          <div className="worker-indicator">
-            <span
-              className={health.workerOnline ? "live-dot" : "offline-dot"}
-            />
-            {health.workerOnline
-              ? "Scheduler is running"
-              : "Scheduler is offline"}
-            <small>{project.timeZone}</small>
-          </div>
-        </div>
+        <nav className="sidebar-bottom" aria-label="Global navigation">
+          <NavLink to="/accounts" onClick={() => setMobile(false)}>
+            <Link2 size={18} />
+            Accounts
+          </NavLink>
+        </nav>
       </aside>
       <div className="workspace">
-        <header className="workspace-bar">
-          <span>
-            <FolderOpen size={14} />
-            {project.name}
-            <span className="breadcrumb-slash">/</span>
-            <strong>{sections.find((s) => s.path === current)?.label}</strong>
-          </span>
-          <span className="local-badge">
-            <span className="live-dot" />
-            Local workspace
-          </span>
-        </header>
         <main id="main-content" className="workspace-content">
           <Outlet context={project} />
         </main>

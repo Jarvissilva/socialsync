@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "socialsync",
+  "version": "0.1.0",
+  "description": "Manage local SocialSync projects, media, drafts, schedules, and publication outcomes through MCP."
+}

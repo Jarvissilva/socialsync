@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { targetInputSchema, type Platform, type Format } from "@social/shared";
+import { targetInputSchema, type Platform, type Format } from "@socialsync/shared";
 import { one, accountRowSchema } from "../src/database.js";
 import {
   publish,
@@ -252,6 +252,11 @@ test("Pinterest image and video Pins use the selected board and correct media so
     const { f, ctx } = context("pinterest", video ? "video" : "pin", [
       video ? "video/mp4" : "image/jpeg",
     ]);
+    // Direct video uploads must not need R2 configuration or a media tunnel.
+    if (video) {
+      ctx.config.mediaDelivery = "r2";
+      ctx.config.publicMediaOrigin = "";
+    }
     let uploaded = false;
     try {
       await withFetch(
@@ -294,6 +299,8 @@ test("Pinterest image and video Pins use the selected board and correct media so
 });
 test("YouTube persists the session, uploads bytes, and confirms processing and visibility", async () => {
   const { f, ctx } = context("youtube", "short", ["video/mp4"]);
+  ctx.config.mediaDelivery = "r2";
+  ctx.config.publicMediaOrigin = "";
   let chunks = 0;
   try {
     await withFetch(
@@ -420,6 +427,101 @@ test("Instagram chooses Facebook Graph and the linked Page token only for Meta a
       }
     } finally {
       globalThis.fetch = previous;
+      f.close();
+    }
+  }
+});
+
+test("URL preparation fails before Facebook and Pinterest publication checkpoints and remains retryable", async (t) => {
+  const { S3Client } = await import("@aws-sdk/client-s3");
+  t.mock.method(S3Client.prototype, "send", async () => {
+    throw new Error("secret-r2-error");
+  });
+  for (const platform of ["facebook", "pinterest"] as const) {
+    const { f, ctx } = context(
+      platform,
+      platform === "facebook" ? "image" : "pin",
+      ["image/jpeg"],
+    );
+    ctx.config.mediaDelivery = "r2";
+    ctx.config.r2 = {
+      endpoint: "https://account.r2.cloudflarestorage.com",
+      bucket: "private",
+      accessKeyId: "test",
+      secretAccessKey: "test",
+      keyPrefix: "socialsync",
+    };
+    let publications = 0;
+    try {
+      await withFetch(
+        () => {
+          publications++;
+          return response({ id: "published" });
+        },
+        async () => {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            await assert.rejects(
+              () => publish(ctx),
+              /R2 media preparation failed/,
+            );
+            assert.deepEqual(ctx.checkpoint, {});
+          }
+          assert.equal(publications, 0);
+          ctx.config.mediaDelivery = "local";
+          assert.equal((await publish(ctx)).remoteId, "published");
+          assert.equal(publications, 1);
+          await publish(ctx);
+          assert.equal(publications, 1);
+          assert(!JSON.stringify(ctx.checkpoint).includes("signature"));
+        },
+      );
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test("R2 failure preserves partial provider uploads and uncertain publication guards", async (t) => {
+  const { S3Client } = await import("@aws-sdk/client-s3");
+  let storageCalls = 0;
+  t.mock.method(S3Client.prototype, "send", async () => {
+    storageCalls++;
+    throw new Error("storage failed");
+  });
+  for (const platform of ["facebook", "instagram", "pinterest"] as const) {
+    const { f, ctx } = context(
+      platform,
+      platform === "pinterest" ? "pin" : "carousel",
+      ["image/jpeg", "image/jpeg"],
+    );
+    ctx.config.mediaDelivery = "r2";
+    ctx.config.r2 = {
+      endpoint: "https://account.r2.cloudflarestorage.com",
+      bucket: "private",
+      accessKeyId: "test",
+      secretAccessKey: "test",
+      keyPrefix: "socialsync",
+    };
+    try {
+      if (platform !== "pinterest") {
+        ctx.checkpoint.children = ["saved-child"];
+        await assert.rejects(() => publish(ctx), /R2 media preparation failed/);
+        assert.deepEqual(ctx.checkpoint, { children: ["saved-child"] });
+      }
+      ctx.checkpoint = {
+        stage: "publishing",
+        ...(platform === "instagram" ? { containerId: "saved-container" } : {}),
+      };
+      const before = storageCalls;
+      await withFetch(
+        () => response({ status_code: "FINISHED" }),
+        async () => {
+          await assert.rejects(() => publish(ctx), /uncertain|reconciliation/);
+        },
+      );
+      assert.equal(storageCalls, before);
+      assert.equal(ctx.checkpoint.stage, "publishing");
+    } finally {
       f.close();
     }
   }

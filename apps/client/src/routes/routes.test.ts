@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryRouter, type LoaderFunctionArgs } from "react-router";
-import { postInputSchema, postSchema } from "@social/shared";
+import { postInputSchema, postSchema } from "@socialsync/shared";
 import { rootLoader, projectLoader, workspaceAction } from "./workspace";
 import {
   postsLoader,
@@ -16,6 +16,11 @@ import {
   discoveryLoader,
   impactLoader,
 } from "./accounts";
+import {
+  providerAppsLoader,
+  providerAppsResourceLoader,
+  providerAppsAction,
+} from "./provider-apps";
 import { ApiError } from "@/lib/api";
 
 const projectId = "11111111-1111-4111-8111-111111111111";
@@ -105,7 +110,7 @@ describe("loaders", () => {
     for (const [url, init] of fetchMock.mock.calls) {
       expect(url).toContain(`/projects/${projectId}/`);
       expect(init?.signal).toBe(requestArgs.request.signal);
-      expect(new Headers(init?.headers).get("X-SocialDesk-Client")).toBe("1");
+      expect(new Headers(init?.headers).get("X-SocialSync-Client")).toBe("1");
     }
   });
   it("preserves missing-post HTTP status for boundaries", async () => {
@@ -361,8 +366,14 @@ describe("actions", () => {
         intent: "connect",
         platform: "meta",
         reconnectAccountId: accountId,
+        providerAppId: otherId,
       }),
     );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      projectId,
+      reconnectAccountId: accountId,
+      providerAppId: otherId,
+    });
     expect(
       result instanceof Response &&
         result.headers.get("X-Remix-Reload-Document"),
@@ -518,5 +529,78 @@ describe("dialog fetcher loaders", () => {
     expect(fetchMock.mock.calls[3]?.[0]).toBe(
       `/api/projects/${projectId}/accounts/${accountId}/boards`,
     );
+  });
+});
+
+describe("provider app routes", () => {
+  const app = {
+    id: otherId,
+    name: "Studio",
+    provider: "meta",
+    clientId: "client",
+    callbackUrl: "http://localhost:3002/public/oauth/meta/callback",
+    linkedAccountCount: 0,
+    createdAt: "now",
+  };
+  it("loads safe configuration metadata for the management page and connection dialogs", async () => {
+    fetchMock.mockImplementation(async () => response([app]));
+    expect(await providerAppsLoader(args())).toEqual({ apps: [app] });
+    expect(await providerAppsResourceLoader(args())).toEqual({
+      ok: true,
+      value: [app],
+    });
+    expect(fetchMock.mock.lastCall?.[0]).toBe("/api/provider-apps");
+  });
+  it("creates, renames without replacing an empty secret, replaces a secret, and deletes", async () => {
+    fetchMock.mockImplementation(async () => response(app));
+    expect(
+      await providerAppsAction(
+        args({
+          intent: "create",
+          name: "Studio",
+          provider: "meta",
+          clientId: "client",
+          clientSecret: "private",
+        }),
+      ),
+    ).toEqual({ ok: true, value: app });
+    expect(fetchMock.mock.lastCall?.[0]).toBe("/api/provider-apps");
+    expect(JSON.parse(String(fetchMock.mock.lastCall?.[1]?.body))).toEqual({
+      name: "Studio",
+      provider: "meta",
+      clientId: "client",
+      clientSecret: "private",
+    });
+    await providerAppsAction(
+      args({ intent: "update", id: otherId, name: "Rename", clientSecret: "" }),
+    );
+    expect(fetchMock.mock.lastCall?.[0]).toBe(`/api/provider-apps/${otherId}`);
+    expect(fetchMock.mock.lastCall?.[1]?.method).toBe("PUT");
+    expect(JSON.parse(String(fetchMock.mock.lastCall?.[1]?.body))).toEqual({
+      name: "Rename",
+    });
+    await providerAppsAction(
+      args({ intent: "update", id: otherId, clientSecret: "replacement" }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.lastCall?.[1]?.body))).toEqual({
+      clientSecret: "replacement",
+    });
+    fetchMock.mockResolvedValue(response({ ok: true }));
+    await providerAppsAction(args({ intent: "delete", id: otherId }));
+    expect(fetchMock.mock.lastCall?.[1]?.method).toBe("DELETE");
+  });
+  it("rejects invalid provider apps before sending credentials", async () => {
+    expect(
+      await providerAppsAction(
+        args({
+          intent: "create",
+          name: "Studio",
+          provider: "instagram",
+          clientId: "client",
+          clientSecret: "private",
+        }),
+      ),
+    ).toMatchObject({ ok: false });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

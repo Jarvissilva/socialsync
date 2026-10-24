@@ -31,6 +31,20 @@ export function openDatabase(path: string): DB {
       INSERT INTO migrations VALUES (1);
     `);
   }).immediate();
+  db.transaction(() => {
+    if (db.prepare("SELECT 1 FROM migrations WHERE version=2").get()) return;
+    db.exec(`
+      CREATE TABLE provider_apps (id TEXT PRIMARY KEY, name TEXT NOT NULL, provider TEXT NOT NULL, clientId TEXT NOT NULL, secret TEXT NOT NULL, createdAt TEXT NOT NULL);
+      ALTER TABLE connections ADD COLUMN providerAppId TEXT REFERENCES provider_apps(id);
+      ALTER TABLE oauth_states ADD COLUMN providerAppId TEXT REFERENCES provider_apps(id);
+      ALTER TABLE oauth_states ADD COLUMN processing INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE discoveries ADD COLUMN providerAppId TEXT REFERENCES provider_apps(id);
+      CREATE INDEX connections_app ON connections(providerAppId);
+      CREATE INDEX oauth_states_app ON oauth_states(providerAppId);
+      CREATE INDEX discoveries_app ON discoveries(providerAppId);
+      INSERT INTO migrations VALUES (2);
+    `);
+  }).immediate();
   return db;
 }
 export function one<T extends z.ZodType>(
@@ -61,6 +75,7 @@ export const accountRowSchema = z.object({
   createdAt: z.string(),
 });
 export const connectionSchema = z.object({
+  providerAppId: z.string().nullable(),
   id: z.string(),
   platform: z.string(),
   tokens: z.string(),

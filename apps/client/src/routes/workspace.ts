@@ -5,7 +5,7 @@ import {
   projectInputSchema,
   accountSchema,
   healthSchema,
-} from "@social/shared";
+} from "@socialsync/shared";
 import { api, json } from "@/lib/api";
 import { actionResult, projectPath } from "./shared";
 export async function rootLoader({ request }: LoaderFunctionArgs) {

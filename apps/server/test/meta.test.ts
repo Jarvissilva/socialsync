@@ -18,6 +18,8 @@ import {
   schedulePost,
   getPost,
 } from "../src/services/workspaceService.js";
+import { importProviderApps } from "../src/services/providerAppService.js";
+import type { Provider } from "@socialsync/shared";
 import { encrypt, decrypt } from "../src/lib/security.js";
 import { acquireLock, releaseLock } from "../src/services/schedulingWorker.js";
 
@@ -52,28 +54,33 @@ function discovery(
   candidates: ReturnType<typeof candidate>[],
   reconnect: string | null = null,
   project: string | null = null,
-  provider = "meta",
+  provider: Provider = "meta",
 ) {
   const id = randomUUID();
-  f.db.prepare("INSERT INTO discoveries VALUES (?,?,?,?,?,?)").run(
-    id,
-    provider,
-    project,
-    reconnect,
-    encrypt(
-      {
-        tokens: {
-          accessToken: "user",
-          accountTokens: Object.fromEntries(
-            candidates.map((c) => [c.externalId, `page-${c.externalId}`]),
-          ),
+  f.db
+    .prepare(
+      "INSERT INTO discoveries (id,platform,projectId,reconnectAccountId,payload,expiresAt,providerAppId) VALUES (?,?,?,?,?,?,?)",
+    )
+    .run(
+      id,
+      provider,
+      project,
+      reconnect,
+      encrypt(
+        {
+          tokens: {
+            accessToken: "user",
+            accountTokens: Object.fromEntries(
+              candidates.map((c) => [c.externalId, `page-${c.externalId}`]),
+            ),
+          },
+          candidates,
         },
-        candidates,
-      },
-      f.config.encryptionKey,
-    ),
-    new Date(Date.now() + 60000).toISOString(),
-  );
+        f.config.encryptionKey,
+      ),
+      new Date(Date.now() + 60000).toISOString(),
+      f.providerApp(provider),
+    );
   return id;
 }
 
@@ -83,8 +90,9 @@ test("Meta uses one app and scope set, supports the complete legacy credential p
   try {
     process.env.FACEBOOK_CLIENT_ID = "legacy-app";
     process.env.FACEBOOK_CLIENT_SECRET = "legacy-secret";
+    importProviderApps(f.db, f.config);
     assert.equal(
-      providerStatuses().find((p) => p.provider === "meta")?.configured,
+      providerStatuses(f.db).find((p) => p.provider === "meta")?.configured,
       true,
     );
     const url = new URL(beginConnection(f.db, f.config, "meta", {}).url);
@@ -104,16 +112,13 @@ test("Meta uses one app and scope set, supports the complete legacy credential p
       ]),
     );
     process.env.META_APP_ID = "new-app";
-    assert.throws(
-      () => beginConnection(f.db, f.config, "meta", {}),
-      /META_APP_SECRET/,
-    );
     process.env.META_APP_SECRET = "new-secret";
+    importProviderApps(f.db, f.config);
     assert.equal(
       new URL(
         beginConnection(f.db, f.config, "facebook", {}).url,
       ).searchParams.get("client_id"),
-      "new-app",
+      "legacy-app",
     );
     const a = f.account("facebook", [f.a.id]);
     assert.throws(
@@ -174,6 +179,7 @@ test("Meta discovers Pages and linked professional Instagram accounts, persists 
     });
   };
   try {
+    f.providerApp("meta");
     const pending = beginConnection(f.db, f.config, "meta", {
       projectId: f.a.id,
     });
@@ -393,10 +399,13 @@ test("legacy Instagram keeps its direct reconnect and refresh path and cannot be
   }
 });
 
-test("a combined reconnect upgrades an existing Facebook authorization without replacing account IDs or assignments", () => {
+test("an explicitly selected combined reconnect binds an unconfigured Facebook authorization without replacing account IDs or assignments", () => {
   const f = fixture();
   try {
     const page = f.account("facebook");
+    f.db
+      .prepare("UPDATE connections SET providerAppId=NULL WHERE id=?")
+      .run(page.connectionId);
     const id = discovery(
       f,
       [
@@ -434,7 +443,9 @@ test("in-flight Facebook-only callbacks keep their original permissions and retu
   process.env.FACEBOOK_CLIENT_SECRET = "old-secret";
   const state = randomUUID();
   f.db
-    .prepare("INSERT INTO oauth_states VALUES (?,?,?,?,?,?)")
+    .prepare(
+      "INSERT INTO oauth_states (id,platform,projectId,reconnectAccountId,verifier,expiresAt) VALUES (?,?,?,?,?,?)",
+    )
     .run(
       state,
       "facebook",
@@ -443,6 +454,7 @@ test("in-flight Facebook-only callbacks keep their original permissions and retu
       "verifier",
       new Date(Date.now() + 60000).toISOString(),
     );
+  importProviderApps(f.db, f.config);
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith("access_token"))
@@ -512,6 +524,7 @@ for (const [index, stage] of [
       );
     };
     try {
+      f.providerApp("meta");
       const pending = beginConnection(f.db, f.config, "meta", {});
       assert.equal(
         new URL(pending.url).searchParams.get("redirect_uri"),

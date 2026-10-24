@@ -68,7 +68,36 @@ export const projectSchema = projectInputSchema.extend({
   scheduledCount: z.number(),
 });
 export type Project = z.infer<typeof projectSchema>;
+export const providerAppInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    provider: z.enum(connectionProviders),
+    clientId: z.string().trim().min(1).max(500),
+    clientSecret: z.string().trim().min(1).max(4000),
+  })
+  .strict();
+export const providerAppUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    clientSecret: z.string().trim().min(1).max(4000).optional(),
+  })
+  .strict()
+  .refine(
+    (v) => v.name !== undefined || v.clientSecret !== undefined,
+    "Provide a name or replacement secret.",
+  );
+export const providerAppSchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  provider: providerSchema,
+  clientId: z.string(),
+  callbackUrl: z.url(),
+  linkedAccountCount: z.number(),
+  createdAt: z.string(),
+});
+export type ProviderApp = z.infer<typeof providerAppSchema>;
 export const accountSchema = z.object({
+  providerAppId: idSchema.nullable().default(null),
   provider: providerSchema,
   id: idSchema,
   platform: platformSchema,
@@ -158,6 +187,7 @@ export const healthSchema = z.object({
   publicMediaReady: z.boolean(),
 });
 export const connectInputSchema = z.object({
+  providerAppId: idSchema.optional(),
   projectId: idSchema.optional(),
   reconnectAccountId: idSchema.optional(),
 });
@@ -240,7 +270,15 @@ export function validateContent(
     errors.push("Pinterest descriptions must be at most 800 characters.");
   if (platform === "youtube" && new TextEncoder().encode(text).length > 5000)
     errors.push("YouTube descriptions must be at most 5,000 bytes.");
-  if (platform === "instagram" && images.some((m) => m.mime !== "image/jpeg"))
-    errors.push("Instagram images must be JPEG.");
+  if (
+    platform === "instagram" &&
+    images.some(
+      (m) =>
+        !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(
+          m.mime,
+        ),
+    )
+  )
+    errors.push("Instagram images must be JPEG, PNG, WebP, or still GIF.");
   return errors;
 }

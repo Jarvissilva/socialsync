@@ -11,7 +11,7 @@ import {
   discoverySchema,
   providerSchema,
   connectInputSchema,
-} from "@social/shared";
+} from "@socialsync/shared";
 import { api, json, okSchema } from "@/lib/api";
 import { actionResult, fieldId, projectPath } from "./shared";
 export async function accountsLoader({ params, request }: LoaderFunctionArgs) {
@@ -85,6 +85,7 @@ export async function accountsAction({ params, request }: ActionFunctionArgs) {
     if (intent === "connect") {
       const platform = providerSchema.parse(form.get("platform"));
       const input = connectInputSchema.parse({
+        providerAppId: form.get("providerAppId") || undefined,
         projectId: params.projectId,
         reconnectAccountId: form.get("reconnectAccountId") || undefined,
       });
