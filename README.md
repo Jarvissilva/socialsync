@@ -94,7 +94,7 @@ pm2 start ecosystem.config.cjs
 pm2 save
 ```
 
-Open **http://127.0.0.1:6003**. Express serves the built UI and API; PM2 runs a separate publishing worker. Both load `apps/server/.env`.
+Open **http://127.0.0.1:6003**. One PM2 process serves the built UI, API, and MCP endpoint and runs the publishing worker. It loads `apps/server/.env`.
 
 Stop any existing development server or worker using the same database before starting production. Use `OAUTH_ORIGIN=http://127.0.0.1:6003` for local callbacks, or preserve your registered HTTPS callback origin. Forward media tunnels to port `6003` with this setup.
 

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fixture } from "./helpers.js";
-import { startDevelopmentWorker } from "../src/services/developmentWorker.js";
+import { startAppWorker } from "../src/services/appWorker.js";
 import { acquireLock } from "../src/services/schedulingWorker.js";
 
 function lock(f: ReturnType<typeof fixture>) {
@@ -9,7 +9,29 @@ function lock(f: ReturnType<typeof fixture>) {
     { owner: string } | undefined;
 }
 
-test("development startup stays available without replacing an active worker", async (t) => {
+test("app startup starts publishing immediately and shutdown releases ownership", async (t) => {
+  const f = fixture();
+  t.mock.method(console, "log", () => {});
+  let stop: (() => Promise<void>) | undefined;
+  try {
+    stop = startAppWorker(f.db, f.config);
+    assert(lock(f)?.owner);
+    assert(
+      f.db.prepare("SELECT value FROM runtime WHERE id='workerHeartbeat'").get(),
+    );
+    await stop();
+    assert.equal(lock(f), undefined);
+    assert.equal(
+      f.db.prepare("SELECT value FROM runtime WHERE id='workerHeartbeat'").get(),
+      undefined,
+    );
+  } finally {
+    await stop?.();
+    f.close();
+  }
+});
+
+test("app startup stays available without replacing an active worker", async (t) => {
   const f = fixture();
   t.mock.timers.enable({ apis: ["setInterval"] });
   const warn = t.mock.method(console, "warn", () => {});
@@ -17,7 +39,7 @@ test("development startup stays available without replacing an active worker", a
   let stop: (() => Promise<void>) | undefined;
   try {
     assert(acquireLock(f.db, "worker", "existing-worker"));
-    stop = startDevelopmentWorker(f.db, f.config);
+    stop = startAppWorker(f.db, f.config);
     t.mock.timers.tick(5000);
     assert.equal(lock(f)?.owner, "existing-worker");
     assert.equal(warn.mock.callCount(), 1);
@@ -33,7 +55,7 @@ test("development startup stays available without replacing an active worker", a
   }
 });
 
-test("development worker retries an expired lease and starts exactly one worker", async (t) => {
+test("app worker retries an expired lease and starts exactly one worker", async (t) => {
   const f = fixture();
   t.mock.timers.enable({ apis: ["setInterval"] });
   t.mock.method(console, "warn", () => {});
@@ -41,7 +63,7 @@ test("development worker retries an expired lease and starts exactly one worker"
   let stop: (() => Promise<void>) | undefined;
   try {
     assert(acquireLock(f.db, "worker", "previous-process"));
-    stop = startDevelopmentWorker(f.db, f.config);
+    stop = startAppWorker(f.db, f.config);
     assert.equal(lock(f)?.owner, "previous-process");
     f.db
       .prepare("UPDATE locks SET expiresAt=? WHERE id='worker'")
@@ -78,7 +100,7 @@ test("shutdown cancels acquisition retries and preserves the other worker's hear
     f.db
       .prepare("INSERT INTO runtime VALUES ('workerHeartbeat',?)")
       .run("existing-heartbeat");
-    stop = startDevelopmentWorker(f.db, f.config);
+    stop = startAppWorker(f.db, f.config);
     await stop();
     f.db
       .prepare("UPDATE locks SET expiresAt=? WHERE id='worker'")
@@ -99,15 +121,12 @@ test("shutdown cancels acquisition retries and preserves the other worker's hear
   }
 });
 
-test("development startup still surfaces unexpected database failures", (t) => {
+test("app startup still surfaces unexpected database failures", (t) => {
   const f = fixture();
   const warn = t.mock.method(console, "warn", () => {});
   try {
     f.db.exec("DROP TABLE locks");
-    assert.throws(
-      () => startDevelopmentWorker(f.db, f.config),
-      /no such table: locks/,
-    );
+    assert.throws(() => startAppWorker(f.db, f.config), /no such table: locks/);
     assert.equal(warn.mock.callCount(), 0);
   } finally {
     f.close();

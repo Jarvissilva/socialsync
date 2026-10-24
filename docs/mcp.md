@@ -32,7 +32,7 @@ The endpoint uses the same local Host, browser Origin, and cross-site checks as 
 
 The MCP SDK handles initialization, tool discovery, tool calls, JSON-RPC errors, and protocol header validation. Requests are stateless and return JSON; there is no session ID, standalone SSE stream, or session deletion endpoint. GET and DELETE return `405 Method Not Allowed`. POST bodies are limited to 1 MiB. Native MCP clients set the required protocol headers; manual requests need `Content-Type: application/json` and `Accept: application/json, text/event-stream` in addition to the local-app header.
 
-Run the existing worker (`pnpm worker`, or the development server's worker) for scheduled/immediate publication to progress. Only one worker should own the database. Use `get_status` to check its heartbeat; the readiness flags describe configuration, not a live provider or tunnel probe. Rebuild production output after changing server source.
+Keep the app server running (`pnpm start` or `pnpm dev`) for scheduled/immediate publication to progress; it starts the publishing worker automatically. Only one worker should own the database. Use `get_status` to check its heartbeat; the readiness flags describe configuration, not a live provider or tunnel probe. Rebuild production output after changing server source.
 
 ## Optional stdio connection
 

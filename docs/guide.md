@@ -98,25 +98,24 @@ Keep the computer awake, online, and running the worker, plus the tunnel when us
 pnpm build
 ```
 
-Set `APP_ORIGIN=http://127.0.0.1:3002` in the server environment. Then run these in separate terminals:
+Set `APP_ORIGIN=http://127.0.0.1:3002` in the server environment. Then start the app:
 
 ```sh
 pnpm start
-pnpm worker
 ```
 
-Open **http://127.0.0.1:3002**. Express serves the built client and API on one origin. Only one publishing worker may run against a database at a time. Stop the development server before starting production on the same port. For unattended local use, configure your operating system's process manager to launch both commands from this repository and preserve `apps/server/.env`.
+Open **http://127.0.0.1:3002**. One server process serves the built client, API, and MCP endpoint and runs the publishing worker. Only one publishing worker may run against a database at a time. Stop the development server before starting production on the same port. For unattended local use, configure your operating system's process manager to launch the app from this repository and preserve `apps/server/.env`.
 
 ### PM2 on port 6003
 
-The ecosystem file runs the built web app and one publishing worker, loading `apps/server/.env` for both:
+The ecosystem file runs one process for the web app and publishing worker, loading `apps/server/.env`:
 
 ```sh
 pnpm build
 pm2 start ecosystem.config.cjs
 ```
 
-Open **http://127.0.0.1:6003**. The MCP endpoint is **http://127.0.0.1:6003/mcp**. The PM2 configuration sets the local host, port, and app origin. If OAuth uses a local callback, set `OAUTH_ORIGIN=http://127.0.0.1:6003` in `apps/server/.env` and update the registered provider redirect URLs; preserve your HTTPS OAuth origin when using a tunnel. Stop any existing publishing worker for this database before starting the PM2 worker.
+Open **http://127.0.0.1:6003**. The MCP endpoint is **http://127.0.0.1:6003/mcp**. The PM2 configuration sets the local host, port, and app origin. If OAuth uses a local callback, set `OAUTH_ORIGIN=http://127.0.0.1:6003` in `apps/server/.env` and update the registered provider redirect URLs; preserve your HTTPS OAuth origin when using a tunnel. Stop any existing publishing worker for this database before starting the PM2 app.
 
 After rebuilding, run `pm2 restart ecosystem.config.cjs --update-env`. Run `pm2 save` to persist the process list for an existing PM2 startup service.
 
@@ -136,7 +135,7 @@ For a complete backup, stop API, worker, and stdio MCP processes, then copy the 
 
 ```text
 apps/client/       React Router feature loaders/actions, layouts, pages, UI, hooks
-apps/server/       Express routes, workflow services, database, API and worker entrypoints
+apps/server/       Express routes, workflow services, database, API and publishing worker
 packages/shared/   Public types, Zod contracts, content validation
 ```
 

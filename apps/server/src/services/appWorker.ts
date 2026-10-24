@@ -3,8 +3,8 @@ import type { DB } from "../database.js";
 import { startWorker, WorkerAlreadyRunningError } from "./schedulingWorker.js";
 
 // A watch restart may outpace a previous worker's lease. Keep the API available
-// while acquiring ownership through the same lock as the standalone worker.
-export function startDevelopmentWorker(db: DB, config: Config) {
+// while acquiring ownership through the existing exclusive worker lock.
+export function startAppWorker(db: DB, config: Config) {
   let stop: (() => Promise<void>) | undefined;
   let retry: ReturnType<typeof setInterval> | undefined;
   const attempt = () => {

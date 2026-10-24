@@ -18,8 +18,5 @@ const common = {
 };
 
 module.exports = {
-  apps: [
-    { ...common, name: "socialsync", script: "dist/index.js" },
-    { ...common, name: "socialsync-worker", script: "dist/worker.js" },
-  ],
+  apps: [{ ...common, name: "socialsync", script: "dist/index.js" }],
 };
